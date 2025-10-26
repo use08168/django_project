@@ -1,4 +1,3 @@
-# Dockerfile
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -6,25 +5,23 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /code
 
-# 시스템 업데이트(필수 아님, 안정성 위해)
-RUN apt-get update -y && apt-get install -y --no-install-recommends \
-    build-essential curl && \
-    rm -rf /var/lib/apt/lists/*
+# (mysqlclient 쓰면 OS 패키지 필요 / PyMySQL 쓰면 이 블록 생략해도 됨)
+# RUN apt-get update && apt-get install -y --no-install-recommends \
+#     build-essential gcc default-libmysqlclient-dev pkg-config \
+#   && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# ❌ 문제의 COPY 라인 제거
-# COPY llm_integration/requirements-extra.txt ./llm_extras.txt
-# RUN pip install --no-cache-dir -r llm_extras.txt || true
-
+# 소스 전체 복사
 COPY . .
 
-# gunicorn 설정 파일 이름 일치 확인 (있으면 패스, 없으면 아래 줄 삭제)
-# 예: 파일명을 gunicorn.conf.py 로 맞춘 상태
+# ⬇️ 파일이 있을 때만 설치
+RUN if [ -f "llm_integration/requirements-extra.txt" ]; then \
+      pip install --no-cache-dir -r llm_integration/requirements-extra.txt; \
+    fi
+
 RUN python manage.py collectstatic --noinput
 
-# entrypoint 사용할 거면 실행 권한 부여(선택)
-# RUN chmod +x entrypoint.sh
-
+# gunicorn 설정 파일 이름 확인(오타주의: gunicorn.conf.py)
 CMD ["bash","-lc","python manage.py migrate && gunicorn project4.wsgi:application --config gunicorn.conf.py --bind 0.0.0.0:8000"]
