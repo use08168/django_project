@@ -1,0 +1,238 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chative Jobs</title>
+    <link rel="icon" href="{% static 'llm/images/logo.png' %}" type="image/x-icon">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @font-face { font-family: 'AppleFont'; src: url('{% static 'llm/fonts/AppleSDGothicNeoB.ttf' %}') format('truetype'); }
+        html { scroll-behavior: smooth; }
+        body { font-family: 'AppleFont', sans-serif; background-color: #000000; color: #FFFFFF; overflow: auto; }
+        ::-webkit-scrollbar { display: none; }
+        .section { height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 2rem; box-sizing: border-box; opacity: 0; transform: translateY(30px); transition: opacity 1s ease-out, transform 1s ease-out; }
+        .section.visible { opacity: 1; transform: translateY(0); }
+        header { background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5), transparent); }
+    </style>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const sections = Array.from(document.querySelectorAll('.section'));
+        let idx = 0; (function showNext(){ if(idx < sections.length){ sections[idx++].classList.add('visible'); setTimeout(showNext, 800);} })();
+
+        const csrftoken = (function getCookie(name){ const v=`; ${document.cookie}`; const p=v.split(`; ${name}=`); if(p.length===2) return p.pop().split(';').shift(); })('csrftoken');
+        const open = el=> el?.classList.remove('hidden');
+        const close = el=> el?.classList.add('hidden');
+        const loginModal = document.getElementById('login-modal');
+        const joinModal = document.getElementById('join-modal');
+        const pwdModal = document.getElementById('pwd-modal');
+        document.getElementById('login-btn').addEventListener('click', ()=> open(loginModal));
+        document.getElementById('join-btn').addEventListener('click', ()=> open(joinModal));
+        document.addEventListener('click', (e)=>{ if(e.target.matches('[data-modal-close]')) close(e.target.closest('[data-modal]')); });
+
+        document.getElementById('start-btn').addEventListener('click', ()=> {
+          const authed = document.body.getAttribute('data-authenticated') === '1';
+          if (authed) window.location.href='/llm/chat/'; else open(loginModal);
+        });
+
+        // 3초마다 섹션 자동 스크롤(애플 느낌)
+        const secs = sections;
+        let autoIdx = 0;
+        const timer = setInterval(()=>{
+          const current = Math.round(window.scrollY / window.innerHeight);
+          const next = current + 1;
+          if (next >= secs.length) {
+            clearInterval(timer);
+            return;
+          }
+          window.scrollTo({ top: next * window.innerHeight, behavior: 'smooth' });
+        }, 3000);
+
+        // 로그인
+      document.getElementById('login-submit').addEventListener('click', async ()=>{
+          const id = document.getElementById('login-id').value.trim();
+          const pw = document.getElementById('login-pw').value.trim();
+          if(!/^\S+@\S+\.\S+$/.test(id)){ alert('이메일 주소 형식이 올바르지 않습니다.'); return; }
+          const fd = new FormData(); fd.append('email', id); fd.append('password', pw);
+          const r = await fetch('/uauth/api/login/', { method:'POST', body: fd, headers: { 'X-CSRFToken': csrftoken }});
+          const j = await r.json();
+          if(j.pending){
+            if(confirm(j.message||'삭제 예정 계정입니다. 복구 하시겠습니까?')){
+              const rf = new FormData(); rf.append('email', id.includes('@')?id:'');
+              const rr = await fetch('/uauth/api/restore/', { method:'POST', body: rf, headers: { 'X-CSRFToken': csrftoken }});
+              const rj = await rr.json(); if(rj.ok){ alert('복구되었습니다. 다시 로그인해 주세요.'); } else { alert(rj.message||'복구 실패'); }
+            }
+            return;
+          }
+          if(j.ok){
+            if(j.require_password_change){ alert('임시 비밀번호로 로그인했습니다. 비밀번호를 수정해주세요.'); open(pwdModal); }
+            else window.location.href='/llm/chat/';
+          } else {
+            alert(j.message||'로그인 실패');
+          }
+        });
+
+        // 회원가입
+        document.getElementById('sign-submit').addEventListener('click', async ()=>{
+          const em = document.getElementById('sign-email').value.trim();
+          const p1 = document.getElementById('sign-pw1').value.trim();
+          const p2 = document.getElementById('sign-pw2').value.trim();
+          const ag = document.getElementById('sign-agree').checked ? 'yes' : '';
+          if(!/^\S+@\S+\.\S+$/.test(em)){ alert('유효한 이메일 형식이 아닙니다.'); return; }
+          if(!window.__email_verified){ alert('이메일 인증이 필요합니다.'); return; }
+          const fd = new FormData(); fd.append('email', em); fd.append('password1', p1); fd.append('password2', p2); fd.append('agree', ag);
+          const r = await fetch('/uauth/api/sign/', { method:'POST', body: fd, headers: { 'X-CSRFToken': csrftoken }});
+          const j = await r.json(); if(j.ok){ alert('회원가입 완료. 로그인해 주세요.'); close(joinModal); open(loginModal); } else { alert(j.message||'회원가입 실패'); }
+        });
+        // 이메일 인증 흐름
+        document.getElementById('email-send-code').addEventListener('click', async ()=>{
+          const em=document.getElementById('sign-email').value.trim(); if(!/^\S+@\S+\.\S+$/.test(em)){ alert('유효한 이메일 형식이 아닙니다.'); return; }
+          const fd=new FormData(); fd.append('email', em);
+          const r=await fetch('/uauth/email/send-code/', {method:'POST', body:fd, headers:{'X-CSRFToken':csrftoken}});
+          const j=await r.json(); if(j.status==='ok'){ alert('인증번호를 전송했습니다.'); } else { alert(j.message||'전송 실패'); }
+        });
+        document.getElementById('email-verify-code').addEventListener('click', async ()=>{
+          const em=document.getElementById('sign-email').value.trim(); const code=document.getElementById('email-code').value.trim();
+          const fd=new FormData(); fd.append('email', em); fd.append('code', code);
+          const r=await fetch('/uauth/email/verify-code/', {method:'POST', body:fd, headers:{'X-CSRFToken':csrftoken}});
+          const j=await r.json(); if(j.status==='ok'){ window.__email_verified=true; alert('이메일 인증 완료'); } else { alert(j.message||'인증 실패'); }
+        });
+
+        // 비밀번호 찾기
+        document.getElementById('open-pwd-modal').addEventListener('click', ()=>{ close(loginModal); open(pwdModal); });
+        document.getElementById('pwd-request-btn').addEventListener('click', async ()=>{
+          const em = document.getElementById('pwd-email').value.trim(); const fd = new FormData(); fd.append('email', em);
+          const r = await fetch('/uauth/api/password/request_temp/', { method:'POST', body: fd, headers: { 'X-CSRFToken': csrftoken }});
+          const j = await r.json(); if(j.ok){ alert('임시 비밀번호를 전송했습니다. 메일을 확인하세요.'); } else { alert(j.message||'요청 실패'); }
+        });
+
+        // 비밀번호 변경 (로그인 상태)
+        document.getElementById('pwd-change-btn').addEventListener('click', async ()=>{
+          const cur = document.getElementById('pwd-current').value.trim();
+          const p1 = document.getElementById('pwd-new1').value.trim();
+          const p2 = document.getElementById('pwd-new2').value.trim();
+          const fd = new FormData(); fd.append('current_password', cur); fd.append('password1', p1); fd.append('password2', p2);
+          const r = await fetch('/uauth/api/password/change/', { method:'POST', body: fd, headers: { 'X-CSRFToken': csrftoken }});
+          const j = await r.json(); if(j.ok){ alert('비밀번호가 변경되었습니다. 다시 로그인해 주세요.'); window.location.href='/llm/'; } else { alert(j.message||'변경 실패'); }
+        });
+      });
+    </script>
+</head>
+<body class="bg-black text-white" data-authenticated="{{ is_authenticated|yesno:'1,0' }}">
+  <form style="display:none">{% csrf_token %}</form>
+  <header class="fixed top-0 left-0 right-0 p-6 z-50 flex justify-between items-center">
+      <div></div>
+      <div class="flex items-center space-x-4">
+          <button id="login-btn" class="text-gray-300 hover:text-white transition-colors duration-300 text-sm">로그인</button>
+          <button id="join-btn" class="bg-gray-200 text-black px-4 py-1.5 rounded-full text-sm hover:bg-white transition-colors duration-300">회원가입</button>
+      </div>
+  </header>
+
+  <div id="landing-page">
+      <div class="section">
+          <h1 class="text-5xl md:text-6xl mb-4 text-gray-100">CHATIVE JOBS</h1>
+          <p class="text-xl md:text-2xl text-gray-200">마케팅 전략, 다시 생각할 시간.</p>
+      </div>
+      <div class="section">
+          <h2 class="text-4xl md:text-5xl mb-6 text-gray-100">전략의 본질. 잡스의 언어.</h2>
+          <p class="text-base md:text-lg max-w-2xl leading-relaxed text-gray-400">
+              파인튜닝으로 완성된 잡스의 뉴럴 엔진.<br>수백만 단어에서 추출한 그의 철학. 수십 번의 키노트에서 증명된 그의 화법.<br>수십 통의 이메일에서 드러난 그의 본질.
+          </p>
+      </div>
+      <div class="section">
+          <h2 class="text-4xl md:text-5xl mb-6 text-gray-100">궁극의 브랜딩 피드백 시스템.</h2>
+          <p class="text-base md:text-lg max-w-2xl leading-relaxed text-gray-400">어떤 기획서든, 그 핵심을 꿰뚫는 통찰력.<br>여기에 업계 사상 가장 정직한 피드백까지.</p>
+      </div>
+      <div class="section">
+          <h2 class="text-4xl md:text-5xl mb-6 text-gray-100">당신의 비전. 더 단단하게.</h2>
+          <p class="text-base md:text-lg max-w-2xl leading-relaxed text-gray-400">새롭게 선보이는 Chative Jobs는 당신의 아이디어를 위한 담금질의 과정입니다.<br>복잡한 기능 목록을 늘어놓는 대신, 사용자에게 전할 단 하나의 가치를 찾아내죠.<br>소음을 걷어내고 본질만 남기는 것. 위대한 전략은 바로 거기서 시작되니까.</p>
+      </div>
+      <div class="section">
+          <h2 class="text-4xl md:text-5xl mb-6 text-gray-100">단지 AI가 아니다.<br>잡스다.</h2>
+          <p class="text-base md:text-lg max-w-2xl leading-relaxed text-gray-400">단순히 정보를 요약하는 챗봇은 많습니다.<br>하지만 Chative Jobs는 관점을 제시합니다.<br>당신의 아이디어가 세상을 바꿀 수 있는지, 아니면 그저 그런 제품으로 남을 것인지.<br>그 차이를 만듭니다.</p>
+      </div>
+      <div class="section">
+          <h2 class="text-4xl md:text-5xl mb-6 text-gray-100">이제, 당신의 차례다.</h2>
+          <p class="text-base md:text-lg max-w-2xl leading-relaxed text-gray-400">당신의 기획서를 업로드하고,<br>가장 위대한 마케터의 피드백을 경험하세요.</p>
+          <button id="start-btn" class="mt-6 bg-white text-black px-6 py-2 rounded-full text-sm hover:bg-gray-200 transition-colors">시작하기</button>
+      </div>
+  </div>
+
+  <!-- 로그인 모달 -->
+  <div id="login-modal" data-modal class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-gray-200 text-black rounded-2xl w-full max-w-md p-6 relative">
+      <button class="absolute top-3 right-3" data-modal-close>✕</button>
+      <h3 class="text-center text-lg font-bold mb-4">로그인</h3>
+      <div class="space-y-3">
+        <input id="login-id" class="w-full rounded-lg px-3 py-2" placeholder="이메일"/>
+        <input id="login-pw" type="password" class="w-full rounded-lg px-3 py-2" placeholder="비밀번호"/>
+        <button id="login-submit" class="w-full bg-black text-white rounded-lg py-2">로그인</button>
+        <button id="open-pwd-modal" class="w-full text-sm text-gray-700 mt-2">비밀번호 찾기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 회원가입 모달 -->
+  <div id="join-modal" data-modal class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-gray-200 text-black rounded-2xl w-full max-w-md p-6 relative">
+      <button class="absolute top-3 right-3" data-modal-close>✕</button>
+      <h3 class="text-center text-lg font-bold mb-4">회원가입</h3>
+      <div class="space-y-3">
+        <div class="flex gap-2">
+          <input id="sign-email" class="flex-1 rounded-lg px-3 py-2" placeholder="이메일"/>
+          <button id="email-send-code" class="px-3 rounded-lg bg-black text-white">인증코드</button>
+        </div>
+        <div class="flex gap-2">
+          <input id="email-code" class="flex-1 rounded-lg px-3 py-2" placeholder="인증코드 입력"/>
+          <button id="email-verify-code" class="px-3 rounded-lg bg-gray-800 text-white">확인</button>
+        </div>
+        <input id="sign-pw1" type="password" class="w-full rounded-lg px-3 py-2" placeholder="비밀번호"/>
+        <input id="sign-pw2" type="password" class="w-full rounded-lg px-3 py-2" placeholder="비밀번호 확인"/>
+        <label class="text-sm inline-flex items-center gap-2"><input id="sign-agree" type="checkbox"/> 가입 시 서비스 이용 약관과 개인정보 보호정책에 동의합니다. <a href="#" id="open-terms" class="text-blue-500 underline">약관</a> · <a href="#" id="open-privacy" class="text-blue-500 underline">개인정보</a></label>
+        <button id="sign-submit" class="w-full bg-black text-white rounded-lg py-2">가입하기</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 비밀번호 찾기/변경 모달 -->
+  <div id="pwd-modal" data-modal class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+    <div class="bg-gray-200 text-black rounded-2xl w-full max-w-md p-6 relative">
+      <button class="absolute top-3 right-3" data-modal-close>✕</button>
+      <h3 class="text-center text-lg font-bold mb-4">비밀번호 찾기 / 변경</h3>
+      <div class="space-y-3">
+        <input id="pwd-email" class="w-full rounded-lg px-3 py-2" placeholder="이메일 (임시 비밀번호 발송)"/>
+        <button id="pwd-request-btn" class="w-full bg-black text-white rounded-lg py-2">임시 비밀번호 이메일로 받기</button>
+        <hr class="my-2">
+        <input id="pwd-current" type="password" class="w-full rounded-lg px-3 py-2" placeholder="현재 비밀번호"/>
+        <input id="pwd-new1" type="password" class="w-full rounded-lg px-3 py-2" placeholder="새 비밀번호"/>
+        <input id="pwd-new2" type="password" class="w-full rounded-lg px-3 py-2" placeholder="새 비밀번호 확인"/>
+        <button id="pwd-change-btn" class="w-full bg-black text-white rounded-lg py-2">비밀번호 변경</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 정책 모달 (스크롤 가능) -->
+  <div id="policy-modal" class="hidden fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" data-modal>
+    <div class="bg-gray-200 text-black rounded-2xl w-full max-w-2xl p-6 relative max-h-[80vh] flex flex-col">
+      <button id="close-policy" class="absolute top-3 right-3">✕</button>
+      <h3 id="policy-title" class="text-center text-lg font-bold mb-4">정책</h3>
+      <div id="policy-body" class="flex-1 overflow-y-auto custom-scrollbar text-sm leading-relaxed">
+        <!-- 내용이 동적으로 삽입됩니다 -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const modal=document.getElementById('policy-modal');
+      const title=document.getElementById('policy-title');
+      const body=document.getElementById('policy-body');
+      const open=(t,html)=>{ title.textContent=t; body.innerHTML=html; modal.classList.remove('hidden'); };
+      document.getElementById('close-policy').addEventListener('click', ()=> modal.classList.add('hidden'));
+      document.getElementById('open-terms').addEventListener('click', async (e)=>{ e.preventDefault(); const r=await fetch('/llm/policy/terms'); const j=await r.json(); open('서비스 이용약관', j.html||''); });
+      document.getElementById('open-privacy').addEventListener('click', async (e)=>{ e.preventDefault(); const r=await fetch('/llm/policy/privacy'); const j=await r.json(); open('개인정보 보호정책', j.html||''); });
+    });
+  </script>
+</body>
+</html>

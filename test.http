@@ -1,0 +1,40 @@
+### 헬스체크
+GET https://einimekm02f4pp-8000.proxy.runpod.net/healthz
+
+### PDF 인제스트
+POST https://einimekm02f4pp-8000.proxy.runpod.net/v1/ingest
+Content-Type: multipart/form-data; boundary=BOUND
+
+--BOUND
+Content-Disposition: form-data; name="user_id"
+
+demo@local
+--BOUND
+Content-Disposition: form-data; name="session_id"
+
+s1
+--BOUND
+Content-Disposition: form-data; name="prefer_openai"
+
+true
+--BOUND
+Content-Disposition: form-data; name="file"; filename="sample.pdf"
+Content-Type: application/pdf
+
+@/path/to/sample.pdf
+--BOUND--
+  
+### 채팅
+POST https://einimekm02f4pp-8000.proxy.runpod.net/v1/chat
+Content-Type: application/json
+
+{
+  "user_id": "demo@local",
+  "session_id": "s1",
+  "messages": [{"role":"user","content":"이 PDF 핵심을 bullet로 정리해줘"}],
+  "k_internal": 6,
+  "k_external": 0,
+  "max_new_tokens": 512,
+  "temperature": 0.7,
+  "top_p": 0.9
+}
