@@ -5,23 +5,21 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /code
 
-# (mysqlclient 쓰면 OS 패키지 필요 / PyMySQL 쓰면 이 블록 생략해도 됨)
-# RUN apt-get update && apt-get install -y --no-install-recommends \
-#     build-essential gcc default-libmysqlclient-dev pkg-config \
-#   && rm -rf /var/lib/apt/lists/*
+# ✅ mysqlclient 빌드에 필요한 패키지 설치
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential gcc pkg-config \
+    default-libmysqlclient-dev \
+    && rm -rf /var/lib/apt/lists/*
 
+# 파이썬 의존성
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 소스 전체 복사
+# 앱 소스
 COPY . .
 
-# ⬇️ 파일이 있을 때만 설치
-RUN if [ -f "llm_integration/requirements-extra.txt" ]; then \
-      pip install --no-cache-dir -r llm_integration/requirements-extra.txt; \
-    fi
+# 정적 수집(장고 설정에 맞게)
+RUN python manage.py collectstatic --noinput || true
 
-RUN python manage.py collectstatic --noinput
-
-# gunicorn 설정 파일 이름 확인(오타주의: gunicorn.conf.py)
+# gunicorn 설정 파일 이름 확인
 CMD ["bash","-lc","python manage.py migrate && gunicorn project4.wsgi:application --config gunicorn.conf.py --bind 0.0.0.0:8000"]
