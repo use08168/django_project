@@ -5,22 +5,73 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chative Jobs</title>
-    <link rel="icon" href="{% static 'llm/images/logo.png' %}" type="image/x-icon">
+    <link rel="icon" href="{% static 'images/logo.png' %}" type="image/x-icon">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
     <style>
-        @font-face { font-family: 'AppleFont'; src: url('{% static 'llm/fonts/AppleSDGothicNeoB.ttf' %}') format('truetype'); }
-        body { font-family: 'AppleFont', sans-serif; }
-        header { background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5), transparent); }
-        .bgcilgray { background-color: #D9D9D9 !important; }
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; display: block !important; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        @font-face {
+            font-family: 'AppleFont';
+            /* [수정] llm/ 경로 유지 */
+            src: url('{% static 'fonts/AppleSDGothicNeoB.ttf' %}') format('truetype');
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        body {
+            font-family: 'AppleFont', sans-serif;
+        }
+        header {
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5), transparent);
+        }
+        .chat-bubble {
+            background-color: white;
+            color: black;
+        }
+        ::-webkit-scrollbar {
+            display: none;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+            display: block !important;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #555; /* 스크롤바 색상 */
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .ptih5 {
+            padding-top: 0.5rem !important;
+        }
+        .bgcilgray {
+            background-color: #D9D9D9 !important;
+        }
+        .pt10 {
+            padding-top: 10px;
+        }
+        .mti1 {
+            margin-top: 1rem !important;
+        }
+        .mbihalf {
+            margin-bottom: 0.5rem !important;
+        }
+        .prose strong, .prose b {
+        font-weight: normal !important;
+        }
+        /* [추가] chat.html의 기존 스타일 */
+        .skeleton{background:linear-gradient(90deg,#e5e5e5 25%,#f3f3f3 37%,#e5e5e5 63%);background-size:400% 100%;animation:skeleton-shimmer 1.2s ease infinite}
+        @keyframes skeleton-shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
+        .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#111;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 8px 20px rgba(0,0,0,.2);z-index:80;opacity:.95}
+        .splitter{width:8px;cursor:col-resize;background:#bbb;border-radius:6px;margin:0 6px}
     </style>
 </head>
 <body class="bg-[#333333] text-white">
 <form style="display:none">{% csrf_token %}</form>
+
 <header class="fixed top-0 left-0 right-0 p-4 z-50 flex justify-between items-center">
-    <div class="pt-2">
+    <div class="pt10">
         <button id="toggle-sidebar-btn" class="text-gray-300 hover:text-white">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path id="toggle-sidebar-icon-path" stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
@@ -28,23 +79,33 @@
         </button>
     </div>
     <div class="flex items-center space-x-4">
-        <button id="logout-btn" class="bg-gray-200 text-black px-4 py-1.5 rounded-full text-sm hover:bg-white transition-colors duration-300">로그아웃</button>
+        <button id="logout-btn" class="bg-gray-200 text-black px-4 py-1.5 ptih5 rounded-full text-sm hover:bg-white transition-colors duration-300">
+            로그아웃
+        </button>
         <button id="open-settings-btn" class="text-gray-300 hover:text-white transition-colors duration-300">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826 3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                 <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
         </button>
     </div>
-  </header>
+</header>
 
-  <div class="flex h-screen pt-16 box-border">
+<div class="flex h-screen pt-16 box-border">
     <aside id="left-sidebar" class="w-64 bgcilgray flex flex-col p-4 flex-shrink-0 rounded-2xl m-3 mr-0 transition-all duration-300">
-      <div class="flex items-center justify-between mb-2">
-        <h2 class="text-sm text-gray-700 px-2">과거 채팅</h2>
-        <button id="new-chat-btn" title="새 채팅" class="text-black text-xl">＋</button>
+      <div id="sidebar-content" class="flex-grow flex flex-col overflow-hidden">
+        <h2 class="text-sm text-gray-700 mb-4 px-2">과거 채팅</h2>
+        
+        <nav id="conv-list" class="flex-1 overflow-auto custom-scrollbar space-y-2"></nav>
+
+        <div class="mt-4 pt-4 border-t border-gray-400">
+            <button id="new-chat-btn" class="w-full flex items-center justify-center p-2.5 border-2 border-dashed border-gray-400 rounded-lg text-gray-600 hover:border-gray-600 hover:text-black transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+            </button>
+        </div>
       </div>
-      <nav id="conv-list" class="flex-1 overflow-auto custom-scrollbar space-y-2"></nav>
     </aside>
 
     <div class="flex flex-1 overflow-hidden">
@@ -60,90 +121,163 @@
       <div id="splitter" class="splitter hidden" title="드래그하여 크기 조절"></div>
 
       <aside id="chat-container" class="w-4/5 flex flex-col flex-shrink-0 rounded-2xl m-3 mx-auto bgcilgray relative">
+
         <div class="flex-grow p-5 overflow-y-auto custom-scrollbar pb-28">
           <div id="chat-messages" class="flex flex-col justify-end space-y-4 min-h-full">
-            <div id="chat-placeholder" class="flex flex-col items-center justify-center text-center text-black h-full absolute inset-0 px-5 pb-28">
-              <span class="text-2xl">생각을 넓히는 시작.</span>
+            <div id="chat-placeholder" class="flex flex-col items-center justify-center text-center h-full absolute inset-0 px-5 pb-28">
+                <span class="text-2xl text-black">
+                    생각을 넓히는 시작.
+                </span>
             </div>
           </div>
         </div>
+
         <div class="absolute bottom-0 left-0 right-0 p-4 pt-0">
-          <div class="flex items-center bg-white rounded-lg p-2 shadow-lg">
-            <button id="open-upload" class="p-2 text-gray-500 hover:text-gray-700" title="업로드">
-              <img src="{% static 'llm/images/uploadbtn.png' %}" class="w-6 h-6 rounded-full object-contain" alt="upload">
-            </button>
-            <input type="file" id="file-upload" class="hidden" accept=".pdf"/>
-            <textarea id="chat-textarea" placeholder="물어보기" rows="1" maxlength="1000" class="flex-1 bg-transparent text-sm text-black px-2 focus:outline-none placeholder-gray-500 resize-none overflow-hidden leading-tight py-2"></textarea>
-            <button id="send-btn" class="p-1.5 bg-black rounded-full text-white hover:bg-gray-700 flex-shrink-0">➤</button>
-          </div>
-          <p class="text-xs text-right text-black mt-3 pr-3">최대 1,000자 · 출력 토큰 1024</p>
+            <div class="flex items-center bg-white rounded-lg p-2 shadow-lg">
+                <button id="open-upload" class="p-2 text-gray-500 hover:text-gray-700">
+                    <img src="{% static 'images/uploadbtn.png' %}" class="w-6 h-6 rounded-full object-contain flex-shrink-0">
+                </button>
+                <input type="file" id="file-upload" class="hidden" accept=".pdf"/>
+                <textarea id="chat-textarea" placeholder="물어보기" rows="1" maxlength="1000" class="flex-1 bg-transparent text-sm text-black px-2 focus:outline-none placeholder-gray-500 resize-none overflow-hidden leading-tight py-2"></textarea>
+                <button id="send-btn" class="p-1.5 bg-black rounded-full text-white hover:bg-gray-700 flex-shrink-0">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                    </svg>
+                </button>
+            </div>
+            <p class="text-xs text-right text-black mt-3 pr-3">최대 1,000자</p>
         </div>
       </aside>
     </div>
   </div>
 
-  <!-- PDF 업로드 안내 모달 -->
+  <div id="settings-modal" class="hidden fixed inset-0 z-[60] bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-gray-200 p-6 rounded-2xl shadow-xl w-full max-w-md relative">
+        <button id="close-settings-btn" class="absolute top-4 right-4 text-gray-700 hover:text-black transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+        <h2 class="text-xl text-center text-[#333333] mb-6">설정</h2>
+        <div class="space-y-2 mb-6">
+            <div class="text-sm">
+                <a href="#" id="open-terms" class="text-blue-600 hover:underline">서비스 이용약관</a>
+                <span class="text-[#333333]"> 확인하기</span>
+            </div>
+            <div class="text-sm">
+                <a href="#" id="open-privacy" class="text-blue-600 hover:underline">개인정보 보호정책</a>
+                <span class="text-[#333333]"> 확인하기</span>
+            </div>
+            <div class="text-sm">
+                <a href="#" id="open-change-pwd" class="text-blue-600 hover:underline">비밀번호 변경하기</a>
+            </div>
+        </div>
+        <p class="text-sm text-[#333333] mb-6 ptih5">
+            탈퇴를 하게 될 경우 30일까지 정보가 저장되며<br>
+            30일 이후부터 모든 정보가 자동 삭제됩니다.
+        </p>
+        <button id="open-confirm-modal-btn" class="w-full bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 transition-colors text-base">
+            탈퇴
+        </button>
+    </div>
+  </div>
+
+  <div id="policy-modal" class="hidden fixed top-0 left-0 right-0 bottom-0 bg-black bg-opacity-70 z-[70] flex items-center justify-center p-4">
+    <div class="bg-[#2d2d2d] text-white rounded-xl max-w-2xl w-full h-[85vh] flex flex-col relative shadow-2xl">
+        <div class="px-8 py-5 border-b border-gray-700 flex justify-between items-center">
+            <h2 id="policy-title" class="text-lg">정책</h2>
+            <button id="close-policy" class="text-gray-400 hover:text-white transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+            </button>
+        </div>
+        <div id="policy-body" class="p-8 overflow-y-auto text-sm text-gray-300 leading-relaxed custom-scrollbar"></div>
+    </div>
+  </div>
+
+  <div id="pwd-change-modal" class="hidden fixed inset-0 z-[60] bg-black bg-opacity-70 flex items-center justify-center p-4">
+    <div class="bg-[#f0f0f0] rounded-xl px-8 py-6 max-w-md w-full mx-4 relative text-black">
+        <div class="flex justify-between items-center mb-6">
+            <button id="new-password-back-btn" class="text-gray-600 hover:text-black transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+            </button>
+            <button id="close-pwd-change-btn" class="text-gray-400 hover:text-gray-600 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+        <div class="w-full">
+            <label for="pwd-current" class="block text-sm text-[#333333] mb-2">현재 비밀번호 입력</label>
+            <input type="password" id="pwd-current" class="w-full p-2.5 border border-gray-300 rounded-lg bg-white text-black text-sm" />
+
+            <label for="pwd-new1" class="block text-sm text-[#333333] mb-2 mt-5">신규 비밀번호 입력</label>
+            <input type="password" id="pwd-new1" class="w-full p-2.5 border border-gray-300 rounded-lg bg-white text-black text-sm" />
+
+            <label for="pwd-new2" class="block text-sm text-[#333333] mb-2 mt-5">신규 비밀번호 재입력</label>
+            <input type="password" id="pwd-new2" class="w-full p-2.5 border border-gray-300 rounded-lg bg-white text-black text-sm" />
+            
+            <ul class="text-xs text-gray-500 mt-5 list-disc list-inside space-y-1">
+                <p>비밀번호를 입력하실 때는 아래 사항을 지켜주셔야 합니다.</p>
+                <li>비밀번호는 최소 5자 이상 최대 16자 제한</li>
+                <li>영문 대/소문자, 숫자, 특수문자 포함</li>
+            </ul>
+            <button id="pwd-change-btn" type="button" class="w-full bg-[#8e8e8e] text-white py-2.5 rounded-lg hover:bg-opacity-90 text-sm mti5 !mt-8">
+                비밀번호 변경 확인
+            </button>
+        </div>
+    </div>
+  </div>
+
+  <div id="confirm-withdrawal-modal" class="hidden fixed inset-0 z-[60] bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div class="bg-gray-200 p-6 rounded-2xl shadow-xl w-full max-w-md relative text-black">
+        <button id="close-confirm-modal-btn" class="absolute top-4 right-4 text-gray-700 hover:text-black transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+        <h2 class="text-xl text-center text-[#333333] mb-6">정말로 탈퇴 하시겠습니까?</h2>
+        <p class="text-sm text-[#333333] text-center mb-6">
+            아래 탈퇴 버튼을 누르시면 탈퇴가 됩니다.<br>
+            정말로 탈퇴 하시겠습니까?
+        </p>
+        <button id="delete-request-btn" class="block w-full bg-red-600 text-white py-2.5 rounded-lg hover:bg-red-700 transition-colors text-base text-center">
+            탈퇴
+        </button>
+    </div>
+  </div>
+
   <div id="pdf-guide-modal" class="hidden fixed inset-0 z-[60] bg-black bg-opacity-50 flex items-center justify-center p-4">
     <div class="bg-gray-200 p-6 rounded-2xl shadow-xl w-full max-w-md relative text-black">
-      <button id="close-pdf-guide" class="absolute top-4 right-4">✕</button>
-      <h2 class="text-xl text-center mb-4">PDF 업로드 안내</h2>
-      <p class="text-sm mb-4">이 채팅에서는 PDF를 1회만 업로드할 수 있습니다. 업로드 후 수정은 불가합니다. 10MB 이하의 PDF만 지원합니다.</p>
-      <div class="flex gap-2">
-        <button id="pdf-guide-cancel" class="flex-1 bg-gray-300 rounded-lg py-2">취소</button>
-        <button id="pdf-guide-ok" class="flex-1 bg-black text-white rounded-lg py-2">업로드</button>
-      </div>
+        <button id="close-pdf-guide" class="absolute top-4 right-4 text-gray-700 hover:text-black transition-colors">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+        </button>
+        <h2 class="text-xl text-center text-[#333333] mb-6">PDF 업로드 안내</h2>
+        <p class="text-sm text-[#333333] text-left mb-6">
+            PDF 업로드는 최초 1회(최대 10MB)만 가능하며<br>
+            1회 업로드 후에는 PDF 수정이 불가합니다.<br>
+            PDF 업로드를 원하신다면 아래 PDF 업로드하기 버튼을 눌러 주십시오.
+        </p>
+        <div class="flex gap-2">
+            <button id="pdf-guide-cancel" class="flex-1 bg-gray-300 rounded-lg py-2">취소</button>
+            <button id="pdf-guide-ok" class="flex-1 bg-black text-white rounded-lg py-2">업로드</button>
+        </div>
     </div>
   </div>
-
-  <!-- 설정 모달: 약관/개인정보/탈퇴 -->
-  <div id="settings-modal" class="hidden fixed inset-0 z-[60] bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-gray-200 p-6 rounded-2xl shadow-xl w-full max-w-md relative text-black">
-      <button id="close-settings-btn" class="absolute top-4 right-4">✕</button>
-      <h2 class="text-xl text-center mb-6">설정</h2>
-      <div class="space-y-2 mb-6">
-        <div class="text-sm"><a id="open-terms" href="#" class="text-blue-600 hover:underline">서비스 이용약관</a> 확인하기</div>
-        <div class="text-sm"><a id="open-privacy" href="#" class="text-blue-600 hover:underline">개인정보 보호정책</a> 확인하기</div>
-        <div class="text-sm"><a id="open-change-pwd" href="#" class="text-blue-600 hover:underline">비밀번호 변경하기</a></div>
-      </div>
-      <p class="text-sm mb-6">탈퇴를 하게 될 경우 30일까지 정보가 저장되며, 30일 이후부터 모든 정보가 자동 삭제됩니다.</p>
-      <button id="delete-request-btn" class="w-full bg-red-600 text-white py-2.5 rounded-lg">탈퇴</button>
-    </div>
-  </div>
-
-  <!-- 정책 모달 (스크롤 가능) -->
-  <div id="policy-modal" class="hidden fixed inset-0 z-[70] bg-black/50 flex items-center justify-center p-4" data-modal>
-    <div class="bg-gray-200 text-black rounded-2xl w-full max-w-2xl p-6 relative max-h-[80vh] flex flex-col">
-      <button id="close-policy" class="absolute top-3 right-3">✕</button>
-      <h3 id="policy-title" class="text-center text-lg font-bold mb-4">정책</h3>
-      <div id="policy-body" class="flex-1 overflow-y-auto custom-scrollbar text-sm leading-relaxed"></div>
-    </div>
-  </div>
-
-  <div id="pwd-change-modal" class="hidden fixed inset-0 z-[60] bg-black bg-opacity-50 flex items-center justify-center p-4">
-    <div class="bg-gray-200 p-6 rounded-2xl shadow-xl w-full max-w-md relative text-black">
-      <button id="close-pwd-change-btn" class="absolute top-4 right-4">✕</button>
-      <h2 class="text-xl text-center mb-6">비밀번호 변경</h2>
-      <div class="space-y-3">
-        <input id="pwd-current" type="password" class="w-full rounded-lg px-3 py-2" placeholder="현재 비밀번호"/>
-        <input id="pwd-new1" type="password" class="w-full rounded-lg px-3 py-2" placeholder="새 비밀번호"/>
-        <input id="pwd-new2" type="password" class="w-full rounded-lg px-3 py-2" placeholder="새 비밀번호 확인"/>
-        <button id="pwd-change-btn" class="w-full bg-black text-white rounded-lg py-2">비밀번호 변경</button>
-      </div>
-    </div>
-  </div>
-
-  <style>
-    .skeleton{background:linear-gradient(90deg,#e5e5e5 25%,#f3f3f3 37%,#e5e5e5 63%);background-size:400% 100%;animation:skeleton-shimmer 1.2s ease infinite}
-    @keyframes skeleton-shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
-    .toast{position:fixed;left:50%;bottom:30px;transform:translateX(-50%);background:#111;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 8px 20px rgba(0,0,0,.2);z-index:80;opacity:.95}
-    .splitter{width:8px;cursor:col-resize;background:#bbb;border-radius:6px;margin:0 6px}
-  </style>
+  
   <div id="toast-root" style="position:fixed;left:0;right:0;bottom:20px;display:grid;place-items:center;z-index:80;pointer-events:none"></div>
+  
   <script>
     function showToast(msg){const r=document.getElementById('toast-root');const t=document.createElement('div');t.className='toast';t.innerText=msg;r.appendChild(t);setTimeout(()=>{t.remove();},2000)}
     const getCookie=(name)=>{const v=`; ${document.cookie}`;const p=v.split(`; ${name}=`);if(p.length===2)return p.pop().split(';').shift();};
     const csrftoken=getCookie('csrftoken');
 
+    // [유지] chat.html의 모든 요소 정의
     const convList=document.getElementById('conv-list');
     const newChatBtn=document.getElementById('new-chat-btn');
     const chatEl=document.getElementById('chat-messages');
@@ -158,43 +292,65 @@
     const splitter=document.getElementById('splitter');
     let pdfWidthUser = null;
 
+    // [수정] chat_design.html의 모달 ID에 맞게 수정
     const settingsModal=document.getElementById('settings-modal');
     const openSettings=document.getElementById('open-settings-btn');
     const closeSettings=document.getElementById('close-settings-btn');
-    const deleteRequestBtn=document.getElementById('delete-request-btn');
+    const deleteRequestBtn=document.getElementById('delete-request-btn'); // [수정] 최종 삭제 버튼
     const logoutBtn=document.getElementById('logout-btn');
 
     const pwdChangeModal=document.getElementById('pwd-change-modal');
     const openPwdChange=document.getElementById('open-change-pwd');
     const closePwdChange=document.getElementById('close-pwd-change-btn');
     const pwdChangeBtn=document.getElementById('pwd-change-btn');
+    
+    // [신규] 2단계 탈퇴 모달용 요소
+    const openConfirmModalBtn = document.getElementById('open-confirm-modal-btn');
+    const confirmModal = document.getElementById('confirm-withdrawal-modal');
+    const closeConfirmModalBtn = document.getElementById('close-confirm-modal-btn');
+
 
     let currentConvId=null;
 
     function open(el){el.classList.remove('hidden');}
     function close(el){el.classList.add('hidden');}
 
+    // [수정] loadConversations, chat_design의 3-dot-menu HTML 적용
     async function loadConversations(){
       const r=await fetch('/llm/api/conversations'); const j=await r.json();
       if(!j.ok) return; convList.innerHTML='';
       (j.items||[]).forEach(item=>{
         const row=document.createElement('div'); row.className='relative chat-item-wrapper';
+        const isActive = String(currentConvId) === String(item.id);
+        const bgColorClass = isActive ? 'bg-white' : 'bg-gray-200'; // 활성: 흰색, 비활성: 연한 회색
+
         row.innerHTML=`
-          <a href="#" data-id="${item.id}" class="flex justify-between items-center p-2 rounded-lg bg-white group ${currentConvId==item.id?'ring-2 ring-black':''}">
+          <a href="#" data-id="${item.id}" class="flex justify-between items-center p-2 rounded-lg ${bgColorClass} transition-colors group">
             <div class="flex-1 overflow-hidden whitespace-nowrap text-ellipsis">
-              <span class="text-sm text-black ${currentConvId==item.id?'font-extrabold':''}">• ${item.title||'새 채팅'}</span>
+              <span class="text-sm text-black">• ${item.title||'새 채팅'}</span>
               <span class="text-xs text-gray-600 block">시작일 : ${item.updated_at||''}</span>
             </div>
-            <button class="more-options-btn p-1 text-gray-600 hover:text-black z-10 relative">⋮</button>
+            <button class="more-options-btn p-1 text-gray-600 hover:text-black z-10 relative">
+                <svg class="w-5 h-5 pointer-events-none" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 5v.01M12 12v.01M12 19v.01" />
+                </svg>
+            </button>
           </a>
           <div class="options-menu hidden absolute top-8 right-0 w-28 bg-white rounded-md shadow-lg border border-gray-200 z-20">
-            <button class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-100 rename-btn">✎ 수정</button>
-            <button class="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-gray-100 delete-btn">🗑 삭제</button>
+            <button class="w-full text-left px-3 py-2 text-xs text-gray-700 hover:bg-gray-100 rename-btn flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                <span>수정</span>
+            </button>
+            <button class="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-gray-100 delete-btn flex items-center space-x-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                <span>삭제</span>
+            </button>
           </div>`;
         convList.appendChild(row);
       });
     }
 
+    // [유지] chat.html의 나머지 JS 함수 (loadConversation, highlightActive, appendMessage 등)
     async function loadConversation(id){
       const r=await fetch('/llm/api/chat/history?conversation_id='+id); const j=await r.json();
       if(!j.ok) return; currentConvId=j.conversation_id; chatEl.innerHTML='';
@@ -208,16 +364,35 @@
     function highlightActive(){
       convList.querySelectorAll('a[data-id]').forEach(a=>{
         const isActive = String(a.getAttribute('data-id')) === String(currentConvId||'');
-        a.classList.toggle('ring-2', isActive);
-        a.classList.toggle('ring-black', isActive);
-        const titleEl=a.querySelector('span.text-sm'); if(titleEl) titleEl.classList.toggle('font-extrabold', isActive);
+        // 배경색 클래스 토글
+        a.classList.toggle('bg-white', isActive);
+        a.classList.toggle('bg-gray-200', !isActive);
       });
     }
 
+    // [수정] chat_design의 AI 아바타 이미지 경로 수정
     function appendMessage(role, content, elapsed_ms){
       const row=document.createElement('div'); row.className='flex items-end gap-2 '+(role==='user'?'justify-end':'justify-start');
       let extra=''; if(role!=='user' && typeof elapsed_ms==='number'){ extra=`<div class="text-[10px] text-gray-700 mt-1">${(elapsed_ms/1000).toFixed(2)}s</div>`; }
-      const bubble=document.createElement('div'); bubble.className='max-w-[62ch] px-4 py-3 rounded-2xl shadow '+(role==='user'?'bg-white text-black':'bg-gray-50 text-black'); bubble.innerHTML=content+extra;
+      const bubble=document.createElement('div'); 
+      
+      if(role === 'user'){
+        bubble.className='max-w-[62ch] px-4 py-3 rounded-2xl shadow bg-white text-black';
+        bubble.innerHTML=content+extra;
+      } else {
+        // AI 응답: chat_design.html의 버블 스타일(로고 포함) 적용
+        row.className = 'flex justify-start items-start space-x-3';
+        const htmlContent = marked.parse(content || ''); // 마크다운을 HTML로 변환
+        row.innerHTML = `<img src="{% static 'images/logo.png' %}" alt="AI Avatar" class="w-8 h-8 rounded-full object-contain flex-shrink-0">
+                          <div class="chat-bubble p-3 rounded-lg max-w-md shadow flex flex-col bg-white text-black">
+                          <div class="text-sm prose max-w-none font-normal" style="font-weight: normal !important;">${htmlContent}</div>
+                          ${extra ? `<span class="text-xs text-gray-500 text-right mt-2">${(elapsed_ms/1000).toFixed(2)}s</span>` : ''}
+                          </div>`;
+        chatEl.appendChild(row); 
+        chatEl.parentElement.scrollTop=chatEl.parentElement.scrollHeight;
+        return; //innerHTML을 직접 설정했으므로 조기 리턴
+      }
+      
       row.appendChild(bubble); chatEl.appendChild(row); chatEl.parentElement.scrollTop=chatEl.parentElement.scrollHeight;
     }
 
@@ -230,19 +405,34 @@
 
     async function sendMessage(){
       const text=(textarea.value||'').trim(); if(!text) return; appendMessage('user', text); textarea.value='';
+      textarea.style.height = 'auto'; // [추가] 높이 초기화
+      
       const fd=new FormData(); fd.append('message', text); if(currentConvId) fd.append('conversation_id', currentConvId);
       appendSkeleton();
       try{
         const r=await fetch('/llm/api/chat/send', {method:'POST', body:fd, headers:{'X-CSRFToken':csrftoken}});
         const j=await r.json(); removeSkeleton();
-        if(j.ok){ currentConvId=j.conversation_id; const it=j.item||{}; appendMessage(it.role||'assistant', it.content||'', it.elapsed_ms); loadConversations(); showToast('응답을 받았습니다'); }
+        if(j.ok){ currentConvId=j.conversation_id; const it=j.item||{}; appendMessage(it.role||'assistant', it.content||'', it.elapsed_ms); loadConversations(); }
+        else { appendMessage('assistant', j.error || '에러가 발생했습니다.'); }
       }catch(e){ removeSkeleton(); appendMessage('assistant','에러가 발생했습니다.'); showToast('오류가 발생했습니다'); }
     }
 
-    textarea.addEventListener('keydown', (e)=>{ if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){ e.preventDefault(); sendMessage(); }});
-    sendBtn.addEventListener('click', sendMessage);
+    // [수정] Textarea 리사이징 (chat_design.html의 로직)
+    let initialTextareaHeight = 0;
+    if(textarea) {
+        initialTextareaHeight = textarea.scrollHeight;
+        textarea.addEventListener('input', () => {
+            textarea.style.height = 'auto';
+            textarea.style.height = `${textarea.scrollHeight}px`;
+        });
+        textarea.addEventListener('keydown', (e)=>{ if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){ e.preventDefault(); sendMessage(); textarea.style.height = `${initialTextareaHeight}px`; }});
+    }
+    sendBtn.addEventListener('click', () => {
+        sendMessage();
+        textarea.style.height = `${initialTextareaHeight}px`;
+    });
 
-    // Upload flow with guide
+    // [수정] PDF Guide Modal ID 변경
     const pdfGuide=document.getElementById('pdf-guide-modal');
     const pdfGuideOpen=()=>{ pdfGuide.classList.remove('hidden'); };
     const pdfGuideClose=()=>{ pdfGuide.classList.add('hidden'); };
@@ -250,55 +440,74 @@
     document.getElementById('pdf-guide-cancel').addEventListener('click', pdfGuideClose);
     document.getElementById('pdf-guide-ok').addEventListener('click', ()=>{ localStorage.setItem('seenPdfGuide','1'); pdfGuideClose(); fileInput.click(); });
     fileBtn.addEventListener('click', ()=>{ if(localStorage.getItem('seenPdfGuide')==='1'){ fileInput.click(); } else { pdfGuideOpen(); } });
+    
+    // [유지] fileInput 'change' 이벤트
     fileInput.addEventListener('change', async (e)=>{
-  const f=e.target.files&&e.target.files[0]; if(!f) return;
-  if(f.size>10*1024*1024){ alert('10MB 이하의 PDF만 업로드 가능합니다.'); fileInput.value=''; return; }
+      const f=e.target.files&&e.target.files[0]; if(!f) return;
+      if(f.size>10*1024*1024){ alert('10MB 이하의 PDF만 업로드 가능합니다.'); fileInput.value=''; return; }
+      showToast('PDF 업로드 중…');
+      fileBtn.disabled = true;
+      const fd=new FormData(); fd.append('file', f); if(currentConvId) fd.append('conversation_id', currentConvId);
+      try{
+        const r=await fetch('/llm/api/file/upload',{method:'POST', body:fd, headers:{'X-CSRFToken':csrftoken}});
+        const j=await r.json();
+        if(j.ok){
+          currentConvId=j.conversation_id;
+          pdfContainer.classList.remove('hidden'); splitter.classList.remove('hidden');
+          pdfViewer.src=j.url; adjustLayout(); loadConversations();
+          if(j.ingest_ok){ showToast('PDF 업로드 및 인덱싱 완료'); }
+          else { showToast('PDF 업로드는 완료했지만 인덱싱 실패 (채팅 품질 저하 가능)'); }
+        }else{ showToast(j.error||'업로드 실패'); }
+      }catch(err){ showToast('네트워크 오류: 업로드 실패'); }
+      finally{ fileInput.value=''; fileBtn.disabled = false; }
+    });
 
-  showToast('PDF 업로드 중…');
-  fileBtn.disabled = true;
-
-    const fd=new FormData(); fd.append('file', f); if(currentConvId) fd.append('conversation_id', currentConvId);
-
-    try{
-      const r=await fetch('/llm/api/file/upload',{method:'POST', body:fd, headers:{'X-CSRFToken':csrftoken}});
-      const j=await r.json();
-      if(j.ok){
-        currentConvId=j.conversation_id;
-        pdfContainer.classList.remove('hidden'); splitter.classList.remove('hidden');
-        pdfViewer.src=j.url; adjustLayout(); loadConversations();
-
-        if(j.ingest_ok){
-          showToast('PDF 업로드 및 인덱싱 완료');
-        }else{
-          showToast('PDF 업로드는 완료했지만 인덱싱 실패 (채팅 품질 저하 가능)');
-        }
-      }else{
-        showToast(j.error||'업로드 실패');
-      }
-    }catch(err){
-      showToast('네트워크 오류: 업로드 실패');
-    }finally{
-      fileInput.value='';
-      fileBtn.disabled = false;
-    }
-  });
-
-    // Sidebar toggle & layout adjust
+    // [유지] Sidebar toggle & layout adjust (chat.html의 기능)
     const toggleBtn=document.getElementById('toggle-sidebar-btn');
     const iconPath=document.getElementById('toggle-sidebar-icon-path');
-    function sidebarHidden(){ return document.getElementById('left-sidebar').style.display==='none'; }
+    const iconPathLeft = "M15 19l-7-7 7-7"; // <
+    const iconPathRight = "M9 5l7 7-7 7";  // >
+    
+    function sidebarHidden(){ return document.getElementById('left-sidebar').classList.contains('w-0'); }
     function adjustLayout(){
       const pdfVisible = !pdfContainer.classList.contains('hidden');
       const sbHidden = sidebarHidden();
-      if(pdfVisible){ const base = sbHidden ? 70 : 60; const pdfW = (pdfWidthUser!==null? pdfWidthUser : base); const chatW = 100 - pdfW; pdfContainer.style.width = pdfW + '%'; chatContainer.style.width = chatW + '%'; splitter.classList.remove('hidden'); }
-      else { chatContainer.style.width = '100%'; pdfContainer.style.width = '0%'; splitter.classList.add('hidden'); }
+      if(pdfVisible){ 
+          const base = 50; // 기본 50%
+          const pdfW = (pdfWidthUser !== null ? pdfWidthUser : base); 
+          const chatW = 100 - pdfW; 
+          pdfContainer.style.width = pdfW + '%'; 
+          chatContainer.style.width = chatW + '%'; 
+          chatContainer.classList.remove('w-4/5', 'mx-auto'); // [추가] mx-auto 제거
+          splitter.classList.remove('hidden'); 
+      } else { 
+          chatContainer.style.width = ''; // width 초기화
+          pdfContainer.style.width = '0%'; 
+          chatContainer.classList.add('w-4/5', 'mx-auto'); // [추가] mx-auto 복원
+          splitter.classList.add('hidden'); 
+      }
     }
-    function setSidebar(display){ const sb=document.getElementById('left-sidebar'); sb.style.display=display; iconPath.setAttribute('d', display==='none'?'M9 5l7 7-7 7':'M15 19l-7-7 7-7'); adjustLayout(); }
+    
+    // [수정] chat_design.html의 사이드바 토글 방식(CSS class) 적용
+    function setSidebar(display){ 
+        const sb=document.getElementById('left-sidebar'); 
+        const sbContent = document.getElementById('sidebar-content');
+        if(display === 'none'){ // 숨기기
+            sb.classList.remove('w-64', 'p-4', 'm-3', 'mr-0');
+            sb.classList.add('w-0', 'p-0', 'm-0');
+            sbContent.classList.add('hidden');
+            iconPath.setAttribute('d', iconPathRight);
+        } else { // 보이기
+            sb.classList.remove('w-0', 'p-0', 'm-0');
+            sb.classList.add('w-64', 'p-4', 'm-3', 'mr-0');
+            sbContent.classList.remove('hidden');
+            iconPath.setAttribute('d', iconPathLeft);
+        }
+        adjustLayout(); 
+    }
     toggleBtn.addEventListener('click', ()=>{ setSidebar(sidebarHidden()?'flex':'none'); });
-    // inline collapse button in sidebar header
-    (function(){ const head=document.querySelector('#left-sidebar > div.flex'); if(head){ const b=document.createElement('button'); b.id='collapse-sidebar'; b.title='채팅목록 접기'; b.textContent='≪'; b.className='text-black text-base'; b.onclick=()=> setSidebar(sidebarHidden()?'flex':'none'); head.appendChild(b); } })();
 
-    // Splitter drag to resize PDF/Chat widths
+    // [유지] Splitter
     (function(){
       let dragging=false; let startX=0; let startPdfPx=0; let total=0;
       function down(e){ if(pdfContainer.classList.contains('hidden')) return; dragging=true; startX=e.clientX; const rect=pdfContainer.parentElement.getBoundingClientRect(); total=rect.width; startPdfPx=pdfContainer.getBoundingClientRect().width; document.body.style.userSelect='none'; }
@@ -309,377 +518,120 @@
       window.addEventListener('mouseup', up);
     })();
 
-    // Sidebar interactions (handle menu first)
+    // [유지] Sidebar interactions (메뉴/삭제/수정/선택)
     convList.addEventListener('click', async (e)=>{
       const more=e.target.closest('.more-options-btn');
-      if(more){ e.preventDefault(); const wrap=more.closest('.chat-item-wrapper'); const menu=wrap.querySelector('.options-menu'); document.querySelectorAll('.options-menu').forEach(x=> x.classList.add('hidden')); menu.classList.toggle('hidden'); return; }
-      const del=e.target.closest('.delete-btn'); if(del){ const id=del.closest('.chat-item-wrapper').querySelector('a[data-id]').getAttribute('data-id'); if(confirm('삭제하시겠습니까?')){ const fd=new FormData(); fd.append('id', id); await fetch('/llm/api/conversations/delete',{method:'POST', body:fd, headers:{'X-CSRFToken':csrftoken}}); loadConversations(); chatEl.innerHTML=''; pdfContainer.classList.add('hidden'); chatPlaceholder.classList.remove('hidden'); showToast('삭제되었습니다'); } return; }
-      const ren=e.target.closest('.rename-btn'); if(ren){ const id=ren.closest('.chat-item-wrapper').querySelector('a[data-id]').getAttribute('data-id'); const t=prompt('제목 수정'); if(t!==null){ const fd=new FormData(); fd.append('id', id); fd.append('title', t); await fetch('/llm/api/conversations/rename',{method:'POST', body:fd, headers:{'X-CSRFToken':csrftoken}}); loadConversations(); showToast('수정되었습니다'); } return; }
+      if(more){ e.preventDefault(); e.stopPropagation(); const wrap=more.closest('.chat-item-wrapper'); const menu=wrap.querySelector('.options-menu'); document.querySelectorAll('.options-menu').forEach(x=> { if (x !== menu) x.classList.add('hidden'); }); menu.classList.toggle('hidden'); return; }
+      const del=e.target.closest('.delete-btn'); if(del){ e.stopPropagation(); const id=del.closest('.chat-item-wrapper').querySelector('a[data-id]').getAttribute('data-id'); if(confirm('삭제하시겠습니까?')){ const fd=new FormData(); fd.append('id', id); await fetch('/llm/api/conversations/delete',{method:'POST', body:fd, headers:{'X-CSRFToken':csrftoken}}); loadConversations(); chatEl.innerHTML=''; pdfContainer.classList.add('hidden'); chatPlaceholder.classList.remove('hidden'); currentConvId=null; showToast('삭제되었습니다'); } return; }
+      const ren=e.target.closest('.rename-btn'); if(ren){ e.stopPropagation(); const id=ren.closest('.chat-item-wrapper').querySelector('a[data-id]').getAttribute('data-id'); const t=prompt('제목 수정'); if(t!==null){ const fd=new FormData(); fd.append('id', id); fd.append('title', t); await fetch('/llm/api/conversations/rename',{method:'POST', body:fd, headers:{'X-CSRFToken':csrftoken}}); loadConversations(); showToast('수정되었습니다'); } return; }
       const a=e.target.closest('a[data-id]'); if(a){ e.preventDefault(); const id=a.getAttribute('data-id'); await loadConversation(id); return; }
     });
+     // [추가] 3-dot-menu 외 영역 클릭 시 닫기
+    document.addEventListener('click', (event) => {
+        if (!event.target.closest('.chat-item-wrapper')) {
+            document.querySelectorAll('.options-menu').forEach(menu => {
+                menu.classList.add('hidden');
+            });
+        }
+    });
 
-    newChatBtn.addEventListener('click', async ()=>{ const r=await fetch('/llm/api/conversations/new',{method:'POST', headers:{'X-CSRFToken':csrftoken}}); const j=await r.json(); if(j.ok){ loadConversations(); chatEl.innerHTML=''; pdfContainer.classList.add('hidden'); chatPlaceholder.classList.remove('hidden'); currentConvId=j.id; showToast('새 채팅이 생성되었습니다'); }});
+    // [유지] New Chat
+    newChatBtn.addEventListener('click', async ()=>{ const r=await fetch('/llm/api/conversations/new',{method:'POST', headers:{'X-CSRFToken':csrftoken}}); const j=await r.json(); if(j.ok){ loadConversations(); chatEl.innerHTML=''; pdfContainer.classList.add('hidden'); splitter.classList.add('hidden'); adjustLayout(); chatPlaceholder.classList.remove('hidden'); currentConvId=j.id; highlightActive(); showToast('새 채팅이 생성되었습니다'); }});
 
-    // Settings / deletion / logout / password change
+    // --- [교체] Settings / Deletion / Password Change Logic (with back button & common close) ---
+    
+    // 공통 모달 닫기 함수 (chat_design.html 로직)
+    function setupModalCloseListeners(modalId, closeBtnId, overlayClickCloses = true) {
+        const modal = document.getElementById(modalId);
+        const closeBtn = document.getElementById(closeBtnId);
+        if (!modal) return;
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => close(modal)); // 그냥 닫기만 함
+        }
+        if (overlayClickCloses) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) close(modal); // 배경 클릭 시 닫기
+            });
+        }
+    }
+
+    // 설정 모달 열기/닫기
     openSettings.addEventListener('click', ()=> open(settingsModal));
-    closeSettings.addEventListener('click', ()=> close(settingsModal));
+    setupModalCloseListeners('settings-modal', 'close-settings-btn');
+
+    // 로그아웃
     logoutBtn.addEventListener('click', async ()=>{ await fetch('/uauth/api/logout/'); window.location.href='/llm/'; });
+    
+    // 설정 -> 탈퇴 확인 모달 열기
+    openConfirmModalBtn.addEventListener('click', () => { close(settingsModal); open(confirmModal); });
+    // 탈퇴 확인 모달 닫기 (X 버튼, 배경 클릭)
+    setupModalCloseListeners('confirm-withdrawal-modal', 'close-confirm-modal-btn');
+    // 최종 탈퇴 요청
     deleteRequestBtn.addEventListener('click', async ()=>{ if(confirm('탈퇴하시겠습니까? 30일간 복구 가능합니다.')){ const r=await fetch('/uauth/api/delete_request/',{method:'POST', headers:{'X-CSRFToken':csrftoken}}); const j=await r.json(); if(j.ok){ alert('탈퇴 대기 상태로 전환되었습니다.'); window.location.href='/llm/'; } }});
-    openPwdChange.addEventListener('click', (e)=>{ e.preventDefault(); open(pwdChangeModal); });
-    closePwdChange.addEventListener('click', ()=> close(pwdChangeModal));
+    
+    // 설정 -> 비밀번호 변경 모달 열기
+    openPwdChange.addEventListener('click', (e)=>{ e.preventDefault(); close(settingsModal); open(pwdChangeModal); });
+    // 비밀번호 변경 모달 닫기 (X 버튼, 배경 클릭)
+    setupModalCloseListeners('new-password-modal', 'close-pwd-change-btn'); // ID는 new-password-modal 사용
+    
+    // 비밀번호 변경 -> 설정 (뒤로가기 버튼)
+    const newPasswordBackBtn = document.getElementById('new-password-back-btn');
+    if (newPasswordBackBtn) {
+        newPasswordBackBtn.addEventListener('click', () => {
+            close(pwdChangeModal); 
+            open(settingsModal); 
+        });
+    }
+
+    // 비밀번호 변경 API 호출
     pwdChangeBtn.addEventListener('click', async ()=>{ const cur=document.getElementById('pwd-current').value.trim(); const p1=document.getElementById('pwd-new1').value.trim(); const p2=document.getElementById('pwd-new2').value.trim(); const fd=new FormData(); fd.append('current_password',cur); fd.append('password1',p1); fd.append('password2',p2); const r=await fetch('/uauth/api/password/change/',{method:'POST', body:fd, headers:{'X-CSRFToken':csrftoken}}); const j=await r.json(); if(j.ok){ alert('비밀번호가 변경되었습니다.'); close(pwdChangeModal);} else { alert(j.message||'변경 실패'); }});
 
-    // 정책 모달 오픈
-    (function(){ const modal=document.getElementById('policy-modal'); const title=document.getElementById('policy-title'); const body=document.getElementById('policy-body'); const openPol=(t,html)=>{ title.textContent=t; body.innerHTML=html; modal.classList.remove('hidden'); }; document.getElementById('close-policy').addEventListener('click', ()=> modal.classList.add('hidden')); document.getElementById('open-terms').addEventListener('click',(e)=>{ e.preventDefault(); openPol('서비스 이용약관', `<div class='space-y-3'><p>이용 약관서비스 약관
-
-이 서비스 약관(이하 "약관")은 귀하와 Chative Jobs 간에 체결되며 Chative Jobs가 소유하거나 운영하는 웹 사이트에 따라 제공되는 Chative Jobs 제품(이하 "Chative Jobs 플랫폼")에 대한 귀하의 액세스 및 사용에 적용됩니다(웹 사이트, Chative Jobs 플랫폼에서 찾을 수 있는 Chative Jobs의 게시된 문서 ( 이하 "문서")는 통칭하여 "서비스"라고 함).
-
-본 약관에 동의하거나 서비스를 이용함으로써 귀하는 본 약관의 적용을 받는 데 동의하는 것입니다. 귀하가 특정 단체(예: 고용주)를 대신하여 서비스에 접속하거나 이용하는 경우, 귀하는 본인 및 해당 단체를 대신하여 본 약관에 동의하며, 해당 단체를 대신하여 본 약관에 동의할 권한이 있음을 진술합니다. 또한, "귀하" 및 "귀하의"에 대한 모든 언급은 해당 단체를 지칭합니다. 해당 단체를 구속할 권한이 없거나 본 약관에 동의하지 않는 경우, 귀하(및 해당 단체)는 Chative Jobs 플랫폼에 접속하거나 이용할 권한이 없습니다.
-
-1. Chative Jobs의 의무
-1.1. 서비스 이용. 본 약관의 조건에 따라 Chative Jobs는 귀하(및 해당되는 경우 승인된 사용자)에게 계정 유형에 따라 내부 사업 또는 개인적 목적으로 서비스에 접근하고 사용할 수 있는 제한적이고 비독점적이며 양도 불가능하고 취소 가능한 권리를 부여합니다. 
-
-1.2. 데이터 보호. Chative Jobs는 귀하(또는 귀하의 승인된 사용자)가 서비스에서 개발하거나 업로드하는 애플리케이션 및 자료("고객 콘텐츠")를 무단 접근, 사용 또는 공개로부터 보호하기 위해 고안된 물리적, 기술적 및 관리적 보안 조치를 구현하고 유지합니다. Chative Jobs의 데이터 처리 추가 조항에 명시되지 않은 모든 개인 데이터 또는 처리 작업은 Chative Jobs의 개인정보보호 정책에 따라 처리되고 보호됩니다.
-
-2. 서비스 약관
-2.1. 서비스 이용 자격. 귀하는 관할권의 관련 법률 및 규정에 따라 본 약관을 체결할 수 있는 법적 연령에 도달한 경우에만 서비스를 이용할 수 있습니다.
-
-2.2. 사용 제한. 본 약관에서 달리 명시적으로 허가된 경우를 제외하고, 귀하는 다음을 하지 않으며, 제3자에게 이를 권장하거나 지원하지 않습니다. (i) 서비스와 관련된 소스 코드, 객체 코드 또는 기본 구조, 아이디어, 노하우 또는 알고리즘을 리버스 엔지니어링, 디컴파일, 분해하거나 기타 방법으로 발견하려고 시도하는 행위(해당 법률에 따라 이러한 제한이 허용되지 않는 범위는 제외). (ii) 서비스를 제공, 판매, 재판매, 양도, 하위 라이선스, 대여, 배포, 임대하거나 기타 방법으로 다른 사람이 서비스에 액세스하거나 사용하도록 허용하는 행위. (iii) 서비스를 복사, 수정, 파생 저작물 생성 또는 서비스의 독점권 고지 제거. (iv) 한국 정부에 의해 금수조치를 받았거나 테러 활동을 지원하는 것으로 지정된 관할권에서 서비스를 사용하는 행위 또는 Chative Jobs와의 사업 참여 또는 서비스 사용을 법률이 허용하지 않는 지역에서 서비스를 사용하는 행위.
-
-2.3. 허용 가능한 사용 정책. 귀하는 Chative Jobs에서 확인할 수 있는 허용 가능한 사용 정책을 준수해야 합니다.
-
-2.4. 계정 관리.
-
-(a) 등록 절차의 일환으로 귀하는 Chative Jobs 계정에 대해 한 명 이상의 관리자를 지정하게 됩니다. 각 관리자는 귀하의 Chative Jobs 계정을 관리하고, 사용자를 추가 또는 삭제하고, 귀하를 대신하여 서비스 및 본 약관과 관련하여 구속력 있는 조치를 취할 권한을 가지며, 귀하는 이를 통해 해당 권한이 있음을 확인합니다.
-
-(b) 각 승인된 사용자의 계정은 해당 계정이 발급된 승인된 사용자 본인에게만 적용됩니다. 계정 자격 증명은 해당 계정이 제공된 본인 이외의 다른 사람과 공유하거나 사용할 수 없습니다. 귀하는 승인된 사용자가 본 약관을 준수하도록 해야 합니다. 귀하는 승인된 사용자의 모든 활동과 승인된 사용자가 본 약관을 준수하지 않는 모든 행위에 대해 책임을 집니다.
-
-(c) 귀하는 정확하고 완전한 계정 정보(도메인 캡처 또는 마이그레이션 목적으로 소유 또는 관리하는 도메인 및/또는 Chative Jobs 계정 목록 포함)를 제공하고 해당 정보의 정확성과 완전성을 유지해야 합니다. 귀하는 사용자 이름 및 비밀번호의 기밀성을 포함하여 승인된 사용자 계정에 대한 통제권을 유지해야 합니다.
-
-2.5. 고객 콘텐츠. 귀하는 Chative Jobs와 그 서비스 제공업체가 본 약관에 명시된 서비스 제공 및 활동(예: 서비스 유지 관리, 보안, 디버깅 및 기타 품질 관리)을 수행하기 위한 목적으로만 고객 콘텐츠를 사용할 수 있도록 승인합니다. 또한, 고객 콘텐츠에 적용되는 특정 AI 관련 설정과 해당 설정을 제어하는 ​​방법을 설명합니다.
-
-2.6. 사용 데이터. Chative Jobs는 서비스의 접근, 사용 및 성능과 관련된 데이터 및 기타 정보("사용 데이터")를 수집 및 분석할 권리를 가지며, Chative Jobs는 (기간 중 및 기간 종료 후) Chative Jobs의 제품 및 서비스를 유지, 개선 및 향상시키기 위해 익명화되고 집계된 형태로 사용 데이터를 자유롭게 사용할 수 있습니다. 사용 데이터의 예로는 기술 로그, 메타데이터, 원격 측정 데이터, 그리고 고객 콘텐츠에 대한 사용 정보(예: 접근 횟수) 등이 있습니다. 명확하게 설명하자면, 사용 데이터에는 고객 콘텐츠 자체가 포함되지 않습니다.
-
-2.7. 권리 유보. 귀하와 Chative Jobs 간의 관계에서, 귀하는 고객 콘텐츠에 대한 모든 권리, 소유권 및 이익을 보유하며, Chative Jobs는 서비스에 대한 모든 권리, 소유권 및 이익을 소유합니다. 본 약관에 명시적으로 규정된 경우를 제외하고, 각 당사자는 자신의 지적 재산권에 대한 모든 권리, 소유권 및 이익을 보유합니다. 명시적으로 부여되지 않은 모든 권리는 유보되며, 법령, 금반언 또는 기타 사유로 본 약관에 따라 어떠한 라이선스, 계약, 면제, 양도, 허가 또는 기타 권리도 묵시적으로 부여되지 않습니다.
-
-3. 비밀 유지.
-3.1. 기밀 정보. Chative Jobs(이하 "공개자")는 귀하( 이하 "수신자")에게 독점적이거나 비공개적인 사업, 기술, 재무 또는 기타 정보(이하 "기밀 정보")를 공개했거나 공개할 수 있습니다. 당사의 기밀 정보에는 보안 관련 정보를 포함하여 서비스의 특징, 기능 및 성능에 관한 비공개 정보가 명시적으로 포함됩니다.
-
-3.2. 의무. 수신자는 공개자의 기밀 정보를 서비스를 사용할지 여부(또는 계속 사용할지 여부)를 평가하는 목적으로만 사용합니다. 수신자는 공개자의 기밀 정보를 알아야 하고 기밀을 유지할 법적 의무가 있는 수신자의 직원, 계약자, 계열사, 대리인 또는 전문 자문가("대리인") 이외의 당사자에게 공개하지 않습니다. 수신자는 대리인이 여기에 명시된 것보다 덜 제한적인 기밀 유지 의무를 따르지 않도록 합니다. 상기 내용에도 불구하고 수신자는 다음과 같은 경우 공개자의 기밀 정보를 공개할 수 있습니다. (a) 공개자의 지시가 있는 경우; 또는 (b) 적용 가능한 법적 절차에 따라 요구되는 범위 내에서, 수신자가 (i) 법률에 따라 허용되는 범위 내에서 공개자에게 사전에 신속하게 통지하고 (ii) 공개에 반대하기 위한 노력과 관련하여 공개자의 합리적인 요청을 준수하기 위해 상업적으로 합리적인 노력을 기울여야 합니다.
-
-4. 보상.
-4.1 귀하는 Chative Jobs를 (a) 귀하의 고객 콘텐츠 또는 (b) 귀하의 본 약관 위반으로 인해 발생하거나 관련된 제3자의 청구, 분쟁, 요구, 책임, 손해, 손실 및 비용과 경비(합리적인 법률 비용 포함, 이에 국한되지 않음)로부터 보상하고, 무해하게 보호하며, Chative Jobs의 선택에 따라 방어해야 합니다.
-
-5. 책임의 한계.
-5.1. 간접 책임의 제한. 어떠한 상황에서도, 어떠한 법적 이론(계약, 불법행위(과실 포함), 엄격한 책임, 보증 또는 기타 책임 이론)에 따라서도 Chative Jobs, 그 계열사 및 그 또는 그들의 계약자, 직원, 대리인 또는 제3자 파트너, 라이센스 제공자 또는 공급자(집합적으로 "당사자 대표")는 이러한 약관 또는 사용 또는 사용 불능으로 인해 발생하거나 관련된 특별, 간접, 우발적, 결과적 또는 징벌적 손해(이익, 데이터 또는 사용 또는 보험 비용의 손실 포함)에 대해 책임을 지지 않습니다. Chative Jobs 또는 그 당사자 대표가 그러한 손해의 가능성에 대해 통보를 받았더라도 서비스를 사용하는 것은 허용되지 않습니다.
-
-5.2. 책임 금액의 제한. 어떠한 상황에서도, 어떠한 법적 이론(계약, 불법행위(과실 포함), 엄격책임, 보증 또는 기타 책임 이론)에 따라서도 Chative Jobs, 그 계열사 및 그 또는 그들의 당사자 대표가 본 약관 또는 서비스의 사용 또는 사용 불능으로 인해 발생하거나 관련된 모든 손해 및 소송 원인에 대해 지는 총 책임은 다음 중 더 큰 금액을 초과하지 않습니다. (a) 100달러;
-
-5.3. 일반. 책임 제한, 보증 부인 또는 손해배상 배제를 규정하는 본 약관의 각 조항은 본 약관과 관련된 위험을 당사자 간에 분담하기 위한 것입니다. 이러한 분담은 Chative Jobs에서 제시하는 가격에 반영되며 당사자 간 거래의 기초가 되는 필수 요소입니다. 이러한 각 조항은 본 약관의 다른 모든 조항과 분리 가능하며 독립적입니다. 제7조의 제한 사항은 법률에 의해 금지되지 않는 최대 범위까지 적용되며, 본 계약의 제한된 구제수단의 본질적인 목적이 달성되지 않더라도 적용됩니다.
-
-6. 기간 및 종료.
-6.1. 약관. 본 약관은 귀하가 서비스에 처음 접속하는 시점부터 적용되며, Chative Jobs 플랫폼의 서비스를 이용하는 경우, 계정이 삭제 또는 해지될 때까지 완전한 효력을 유지합니다.
-
-6.2. 종료.
-
-(a) Chative Jobs는 Chative Jobs의 단독 재량에 따라 언제든지 통지 없이 또는 귀하에게 책임을 지지 않고 귀하의 서비스 접근 및 이용을 종료할 수 있습니다.
-
-(b) 서비스 또는 Chative Jobs 계정의 종료, 중단 또는 취소 시, 이 약관의 다음 조항은 유효합니다. 서비스 약관; 기밀 유지; 사용 데이터, 고객 콘텐츠 및 피드백과 관련된 조항; 보증 및 면책 조항; 면책 조항; 책임의 한계; 종료; 제7조에 따른 기타 조항. 종료 시, 해당 법률에서 허용하는 범위 내에서 Chative Jobs는 당시 보유한 모든 고객 콘텐츠를 30일 동안 전자적으로 검색할 수 있도록 제공하지만, 그 이후에는 Chative Jobs가 저장된 고객 콘텐츠를 삭제할 수 있습니다. 앞서 언급한 내용에도 불구하고, 제7.11조(수출 통제) 위반으로 이 계약이 종료되면 고객 콘텐츠에 대한 모든 권리, 소유권 및 이익을 상실하고 Chative Jobs는 고객 콘텐츠를 즉시 격리, 삭제 또는 제거하고 Chative Jobs 플랫폼에 대한 사용 및 액세스를 즉시 중단할 수 있습니다.
-
-7. 기타.
-7.1. 본 약관의 변경. Chative Jobs는 언제든지 본 약관(및 본 약관에 언급된 모든 정책 또는 계약)을 수정할 수 있습니다. Chative Jobs의 본 약관의 최신 버전을 게시합니다. Chative Jobs는 귀하의 권리 또는 서비스 이용에 중대한 영향을 미치는 것으로 판단되는 약관 변경사항에 대해 합리적인 사전 통지를 제공하기 위해 노력합니다. Chative Jobs는 Chative Jobs 플랫폼, Chative Jobs 웹 사이트 및/또는 귀하의 계정에 연결된 이메일 주소로 이메일을 발송하여 이러한 통지를 제공할 수 있습니다. 개정된 약관이 발효된 후에도 서비스를 계속 사용함으로써 귀하는 새로운 약관의 적용을 받는 데 동의합니다.
-
-7.2. 서비스 변경. Chative Jobs는 단독 재량으로 서비스의 기능을 추가, 변경 또는 제거할 수 있으며, 저장 공간이나 기타 기능을 수정하거나 제한할 수 있으며, 통지 없이 언제든지 서비스를 완전히 중단할 수 있습니다.
-
-7.3. 불가항력. Chative Jobs는 합리적인 통제 범위를 벗어난 사유 또는 상황으로 인해 본 약관에서 요구하는 이행이 지연되거나 이행되지 않는 경우, 해당 불이행 사유를 회피하거나 제거하기 위해 상업적으로 합리적인 노력을 기울이는 한, 본 약관을 위반하거나 이행하지 않는 것으로 간주되지 않으며, 책임을 지지 않습니다. Chative Jobs가 귀하 또는 귀하의 승인된 사용자에게 서비스를 제공하는 것이 법적으로 금지되어 있다고 선의로 판단하는 경우, Chative Jobs는 Chative Jobs의 단독 재량으로 귀하의 계정을 동결할 수 있습니다.
-
-7.4. 공지. Chative Jobs가 본 약관에 따라 제공하는 모든 공지 또는 기타 의사소통(본 약관의 수정 사항 포함)은 Chative Jobs 플랫폼, Chative Jobs 웹 사이트 및/또는 귀하의 계정에 연결된 이메일 주소로 이메일을 통해 제공됩니다.
-
-7.5. 분리 가능성. 본 약관의 어떤 조항이 무효하거나 집행 불가능하다고 하더라도 다른 조항의 유효성이나 집행 가능성에는 영향을 미치지 않으며, 당사자들은 본 약관이 그 의도를 유지하면서 유효하고 합법적이며 집행 가능하도록 필요한 범위 내에서 해당 조항을 수정함으로써 개정된 것으로 간주하거나, 그러한 수정이 불가능한 경우 동일한 목적을 달성하는 합법적이고 집행 가능한 다른 조항으로 대체함으로써 개정된 것으로 간주한다는 것을 의도하고 합의합니다.
-
-7.6. 양도. 본 약관(및 귀하의 서비스 이용 권한)은 Chative Jobs의 사전 서면 동의 없이는 양도 또는 이전할 수 없습니다. 본 조항을 위반하는 모든 양도 행위는 무효입니다.
-
-7.7. 서비스 제공자. Chative Jobs는 본 약관 이행을 지원하기 위해 제3자 서비스 제공자를 고용할 수 있습니다. 그럼에도 불구하고 Chative Jobs는 본 계약 준수에 대한 책임을 집니다.
-
-7.8. 파트너십 없음. 본 약관으로 인해 어떠한 대리, 파트너십, 합작 투자 또는 고용도 발생하지 않으며, 어느 당사자도 상대방을 어떠한 방식으로든 구속할 수 있는 권한을 갖지 않습니다.
-
-7.9. 준거법. 본 약관 및 본 약관과 관련하여 발생하는 모든 청구는 법률 조항의 충돌 여부와 관계없이 대한민국 법률의 적용을 받습니다. 단, 중재 관련 조항은 연방 중재법의 적용을 받습니다. 국제물품매매계약에 관한 유엔협약은 명시적으로 부인됩니다.
-
-7.10. 분쟁 해결
-
-귀하와 Chative Jobs는 본 약관, 귀하의 서비스 이용 또는 이용 계획, 또는 Chative Jobs와 귀하 간의 관계 또는 거래의 모든 측면으로 인해 발생하는 분쟁(각각 "청구")을 법원이 아닌 구속력 있는 중재를 통해 해결하는 데 동의합니다. 단, 어느 당사자든 지적 재산권의 침해 또는 기타 오용을 금지하기 위해 법원에 소송을 제기할 수 있습니다. 제9.11조의 목적상, 청구에는 본 약관의 발효일 이전에 발생한 분쟁이 포함됩니다. 중재자는 본 약관의 적용 여부, 부당함 또는 집행 가능성 여부를 포함하여 모든 중재 가능성 임계치 문제 및 중재에 대한 모든 방어를 해결할 독점적 권한을 가집니다.
-
-중재란 무엇인가?
-
-중재에는 판사나 배심원이 개입하지 않습니다. 대신 중립적인 사람("중재인")이 각 당사자의 주장을 듣고 양측 모두에게 최종적으로 구속력이 있는 결정을 내립니다. 중재인은 금전적 손해배상을 포함하여 법원과 동일한 구제책을 판정할 수 있습니다. 중재 판정에 대한 법원의 재심은 제한적이지만, 당사자 중 한 명이 중재인의 결정을 따르지 않을 경우, 상대방은 법원을 통해 중재 결정을 집행할 수 있습니다.
-
-청구가 집단소송이나 유사한 소송의 일부가 될 수 있나요?
-
-아니요. 귀하는 Chative Jobs를 통해 귀하의 청구를 집단소송, 대표소송 또는 통합 소송의 일부가 아닌 개인 단위로만 해결하는 데 동의합니다. Chative Jobs는 귀하가 중재를 거부하든 동일한 방식으로 처리하는 데 동의합니다. 따라서 중재를 거부하지 않는 한, 귀하와 Chative Jobs는 집단소송, 대표소송 또는 통합소송의 원고 또는 구성원으로서 분쟁을 진행하거나 해결할 권리를 포기합니다.
-
-중재 절차를 시작하려면 어떻게 해야 하나요?
-
-가능하다면 중재 없이 청구를 처리하고자 합니다. 중재를 시작하기 전에 귀하와 Chative Jobs는 중재 청구가 제기되기 최소 60일 전에 서면으로 서로에게 청구를 통지하는 데 동의합니다. Chative Jobs에 대한 청구가 있는 경우, 다음이 포함된 개별 서한을 보내는 데 동의합니다. (a) 귀하의 이름, 우편 주소 및 이메일 주소; (b) 귀하의 변호사의 이름, 우편 주소 및 이메일 주소(있는 경우); (c) 청구에 대한 설명; (d) 귀하의 서명("중재 전 서한")을 Chative Jobs 주소로 보내십시오. Chative Jobs가 귀하에 대한 중재를 요청하는 경우 Chative Jobs는 귀하가 제공한 이메일 주소 또는 주소로 통지합니다. 여러 개인을 대신하여 보낸 중재 전 서한은 모든 개인에게 무효입니다. 귀하 또는 Chative Jobs가 사전 중재 서한을 수령한 날로부터 60일 이내에 청구가 해결되지 않을 경우 정식 중재를 제기할 수 있습니다.
-
-중재에는 어떤 규칙이 적용되나요?
-
-중재는 국가중재조정(“NAM”)에서 시행하는 종합 분쟁 해결 규칙 및 절차에 따라 진행됩니다. 수수료 및 비용은 해당 NAM 규칙에 따라 배정됩니다. 단, 중재자가 청구가 부당하다고 판단하는 경우, 청구 당사자는 부당하다고 판단된 청구로 인해 발생한 행정 수수료, 심리 수수료 및/또는 기타 수수료를 상대방에게 상환할 책임이 있습니다. NAM에서 중재를 진행할 수 없는 경우, 당사자들은 다른 중재 기관을 선택합니다.
-
-중재는 서면으로, 원격으로(예: 화상 회의) 대한민국에서 진행될 수 있으며, 귀하와 Chative Jobs가 모두 동의한 다른 장소에서 진행될 수도 있습니다.
-
-중재 거부에 대한 지침
-
-위에서 설명한 대로 청구에 대한 중재에 동의하지 않으시면 Chative Jobs 주소로 Chative Jobs에 서면으로 통지하여 본 중재 계약을 탈퇴할 수 있습니다. 통지에는 이름, 우편 주소, 이메일 주소, 그리고 본 중재 계약을 탈퇴한다는 명확한 진술이 포함되어야 합니다. 여러 당사자를 탈퇴시키려는 의도로 작성된 탈퇴 통지는 해당 당사자 모두에게 무효입니다. 어떠한 개인(또는 그 대리인이나 대표자)도 다른 당사자를 대신하여 탈퇴를 실행할 수 없습니다. 귀하는 본 약관 또는 업데이트된 약관에 처음 동의한 날로부터 30일 이내에 탈퇴해야 합니다.
-
-중재가 없는 경우의 분쟁 해결
-
-중재로 처리되지 않는 모든 청구에 대한 유일한 관할권 및 재판지는 대한민국에 위치한 법원이며, 양 당사자는 해당 법원의 관할권에 동의합니다.
-
-7.11. 수출 통제. Chative Jobs 플랫폼과 귀하의 사용은 수출 통제 및 경제 제재 법률 및 규정(집합적으로 " 수출 통제 ")의 적용을 받으며, 여기에는 미국 수출 관리 규정, 미국 재무부 산하 외국 자산 통제국(" OFAC ")이 관리하는 법률, 법령, 규정, 규칙 및 행정 명령이 포함됩니다. Figma와 귀하는 각각 OFAC 특별 지정 국민 및 차단된 사람 목록이나 수출 통제에 따라 공표된 금지 또는 제한된 당사자 목록에 포함되어 있지 않거나(또는 해당 목록에 명시된 사람이 소유하거나 통제하지 않음) 있음을 진술합니다. 귀하는 Figma 플랫폼 및 고객 콘텐츠에 대한 액세스 및 사용 시 모든 해당 수출 통제를 준수해야 합니다. 귀하는 Figma 플랫폼에 액세스하거나 사용하거나, 수출 통제를 위반하여 Figma 플랫폼 또는 고객 콘텐츠와 관련된 거래를 수출, 재수출, 배포, 양도하거나, 기타 방식으로 수행하지 않습니다. 의심을 피하기 위해, Figma는 수출 통제 및 OFAC에 따른 의무를 준수하기 위해 법률이나 정부 기관에서 요구하는 조치(예: Figma 플랫폼에 대한 접근 중단, 본 계약 종료 또는 관련 고객 콘텐츠 차단)를 취할 수 있습니다.
-
-7.12. 부패 방지. 어느 당사자도 본 계약과 관련하여 상대방의 직원이나 대리인으로부터 불법적이거나 부적절한 뇌물, 리베이트, 금품, 선물 또는 금품의 제공을 받거나 제안받은 적이 없습니다. 통상적인 업무 과정에서 제공되는 합리적인 선물 및 접대는 상기 제한 사항을 위반하지 않습니다.
-
-7.13. 정부 사용. 본 9.14항은 귀하가 정부 또는 공공 부문 기관인 경우에만 적용됩니다. 귀하는 Chative Jobs에 대해 해당 공공 조달 법률 및 규정을 준수하여 본 약관을 체결함을 진술하고 보증합니다. Chative Jobs 플랫폼 및 문서는 "상업용 제품"이며, "상업용 컴퓨터 소프트웨어" 및 "상업용 컴퓨터 소프트웨어 문서"(해당되는 경우 48 CFR §12.212 및 48 CFR §227.7202에 사용됨)로 구성됩니다. Chative Jobs 플랫폼과 관련된 상업용 컴퓨터 소프트웨어 및 상업용 컴퓨터 소프트웨어 문서를 사용, 수정, 복제, 릴리스, 수행, 표시 또는 공개할 수 있는 대한민국 정부의 권리는 이 약관에 명시된 대로 적용됩니다. 대한민국 정부 기관 또는 최종 사용자가 이 약관에 따라 양도되지 않은 권리가 필요한 경우, Chative Jobs와 협상하여 해당 권리를 양도하는 데 허용되는 조건이 있는지 확인해야 하며, 해당 계약 또는 합의서에는 이 약관에 대한 상호 수용 가능한 추가 조항이 필요합니다. 이 계약에서 "준거법 및 분쟁 해결", "고객의 면책", 자동 갱신 조건 및 해당 법률과 상충되는 기타 조건이라는 제목의 조항은 해당 법률을 준수하는 데 필요한 범위 내에서 포기됩니다.
-
-7.14. 특허 주장 기관. 귀하가 특허 주장 기관이거나 특허 주장 기관을 대신하여 또는 특허 주장 기관의 이익을 위해 행동하는 경우, Chative Jobs 또는 그 계열사를 상대로 서비스가 지적 재산권(특허 포함)을 침해, 도용 또는 위반한다고 주장하는 청구를 주장하거나 제3 자가 주장하거나 조치, 소송, 절차 또는 요구를 추진하도록 허가, 지원, 장려 또는 허용해서는 안 됩니다. " 특허 주장 기관 "은 때때로 '비실행 기관'이라고도 하며, (a) 특허권의 공격적인 주장에서 상당한 수익을 창출하거나 창출하려고 하는 기관, 또는 (b) (a)에 설명된 기관을 직접 또는 간접적으로 통제하거나, 그 기관에 의해 통제되거나, 공통 통제를 받는 기관입니다.
-
-7.15. 상표 가이드라인. Chative Jobs의 상표 가이드라인은 Chative Jobs를 제품 또는 서비스의 출처로 식별하는 단어, 로고, 그래픽, 디자인 및 기타 표시("Chative Jobs 상표")의 사용에 적용됩니다. Chative Jobs 상표는 Chative Jobs 사이트에서 확인할 수 있는 Chative Jobs 상표 가이드라인에 명시된 대로만 사용할 수 있습니다.
-
-7.16. 해석. 본 약관에서 "포함하는", "포함하다", "포함한다" 또는 "예"와 같은 단어가 사용될 때마다 "제한 없이"라는 문구가 뒤에 오는 것으로 간주됩니다.
-</p><p>서비스 사용 조건, 금지 행위, 책임의 제한, 분쟁 해결 절차 등을 포함합니다.</p></div>`); }); document.getElementById('open-privacy').addEventListener('click',(e)=>{ e.preventDefault(); openPol('개인정보 보호정책', `<div class='space-y-3'><p>1. 정보
-Chative Jobs 및 그 계열사(이하 "Chative Jobs", "당사" , "저희")의 목표는 모든 사람이 채팅에 접근할 수 있도록 하는 것입니다. 본 개인정보 보호정책은 당사 가 귀하의 개인정보를 수집, 사용 및 공개하는 방식을 이해하고, 귀하가 누릴 수 있는 개인정보 보호 권리를 행사하는 데 도움을 드립니다.
-
-본 개인정보 보호정책에 정의되지 않은 대문자 용어는 당사 서비스 약관에 명시된 의미를 갖습니다 .
-
-2. 범위
-본 개인정보 보호정책은 당사 웹사이트, 모바일 애플리케이션, 애플리케이션 프로그램 인터페이스, 채팅 서비스 및 관련 온라인 및 오프라인 서비스(이하 "서비스" )를 포함하여 당사가 처리하는 개인정보에 적용됩니다.
-
-본 개인정보 보호정책은 당사 서비스를 통해 접근할 수 있는 경우에도 제3자 웹사이트, 서비스 또는 애플리케이션에는 적용되지 않습니다. 또한, 귀하에게 적용되는 경우 요청 시 제공되는 별도의 개인정보 보호 고지에는 당사의 현 직원 및 계약자와 관련된 처리가 적용됩니다.
-
-3. 당사가 수집하는 개인정보
-당사가 수집하는 개인 정보는 귀하가 당사 서비스와 상호작용하는 방식에 따라 달라집니다.
-
-귀하가 제공하는 정보
-계정 정보. Chative Jobs 계정을 생성하시면 이름, 이메일 주소, 개인 웹사이트, 사진 등 고객님께서 제공하시는 개인 정보를 수집합니다.
-
-커뮤니케이션 정보. 당사는 귀하가 당사 서비스에 대한 정보를 요청하거나, 뉴스레터를 구독하거나, 기타 방식으로 당사와 소통할 때 이메일 주소, 전화번호, 우편 주소, 마케팅 선호도 등의 개인 정보를 수집합니다.
-
-지원자 정보. 당사는 서비스에 채용 공고 및 기회를 게시할 수 있습니다. 귀하가 이러한 게시물에 답변하거나 다른 방식으로 당사에 지원자 정보를 제공하는 경우, 당사는 귀하가 제공하는 정보를 수집하고 처리합니다.
-
-고객 콘텐츠. 당사는 귀하가 서비스에서 개발하거나 서비스에 업로드한 애플리케이션 및 자료를 수집합니다. 고객 콘텐츠에는 귀하가 디자인에 사용하는 이름이나 Chative Jobs 음성 기능을 사용하는 경우 음성 등 개인 정보가 포함될 수 있습니다.
-
-사용 데이터. 당사는 서비스의 접근, 사용 및 성능과 관련된 데이터 및 기타 정보("사용 데이터")를 수집하고 분석합니다. 사용 데이터의 예로는 기술 로그, 메타데이터, 원격 측정 데이터, 아래 정의된 기술 데이터, 그리고 고객 콘텐츠에 대한 사용 정보(예: 접근 횟수) 등이 있습니다. 명확하게 설명하자면, 사용 데이터에는 고객 콘텐츠 자체는 포함되지 않습니다. 사용 데이터에는 다른 사용자와의 상호 작용에 대한 정보와 같은 개인 정보가 포함될 수 있습니다.
-
-고객 서비스 정보(교육 및 품질 보증 포함). Chative Jobs의 영업, 고객 서비스 또는 지원 담당자에게 전화하거나 다른 방식으로 연락하시는 경우, 당사는 귀하가 담당자에게 제공하는 정보를 수집합니다. 또한, 당사는 교육 또는 품질 보증 목적으로 귀하와 당사 담당자 간의 전화 통화 또는 화상 회의를 녹음할 수 있습니다.
-
-경품 행사, 콘테스트, 설문조사 및 이벤트 정보. 당사가 주최, 운영 또는 후원하는 경품 행사, 콘테스트, 설문조사, 컨퍼런스 및 기타 이벤트와 관련하여, 귀하는 당사에 정보를 제공하거나, 당사는 귀하의 이름, 이메일 주소, 우편 주소, 인구통계학적 데이터 및 이벤트 관련 정보 등 귀하의 정보를 수신할 수 있습니다.
-
-자동으로 수집된 정보(기술 정보)
-자동 데이터 수집. 당사는 귀하가 서비스를 이용할 때 특정 정보를 자동으로 수집합니다. 이 정보에는 귀하의 인터넷 프로토콜(IP) 주소, 사용자 설정, MAC 주소, 쿠키 식별자, 모바일 광고 및 기타 고유 식별자, 귀하의 브라우저, 운영 체제 또는 기기에 대한 세부 정보, 위치 정보(귀하의 IP 주소에서 유추), 인터넷 서비스 제공업체, 귀하가 방문한 페이지, 귀하가 클릭한 링크에 대한 정보, 그리고 귀하가 서비스와 상호 작용하고 서비스를 이용하는 방식에 대한 정보가 포함될 수 있습니다.
-
-귀하의 허락하에, 우리는 귀하에게 서비스를 제공하기 위해 귀하의 운영 체제에 설치된 글꼴에 대한 정보를 수집할 수도 있습니다.
-
-쿠키, 픽셀 태그/웹 비콘 및 분석 정보. 당사 및 서비스와 관련하여 콘텐츠, 광고 또는 기타 기능을 제공할 수 있는 제3자는 쿠키, 픽셀 태그, 로컬 스토리지 및 기타 기술(이하 "기술")을 사용하여 서비스를 통해 정보를 자동으로 수집할 수 있습니다. 기술은 본질적으로 귀하의 기기에 저장되는 작은 데이터 파일로, 귀하가 당사 서비스를 방문하거나 서비스와 상호 작용할 때마다 당사와 당사의 파트너가 특정 정보를 기록할 수 있도록 합니다.
-
-쿠키. 쿠키는 기기 브라우저에 저장되어 사용자의 기본 설정을 저장하는 작은 텍스트 파일입니다. 쿠키를 통해 수집되는 데이터를 관리하는 방법에 대한 자세한 내용은 아래 "선택 사항" 섹션을 참조하세요.
-픽셀 태그/웹 비콘. 픽셀 태그(웹 비콘이라고도 함)는 서비스에 내장된 코드로, 서비스 참여 정보를 수집합니다. 픽셀 태그를 사용하면 사용자가 특정 웹페이지를 방문했거나 특정 광고를 클릭했는지 등을 기록할 수 있습니다. 또한, 이메일에 웹 비콘을 포함하여 메시지 열람, 처리 또는 전달 여부를 파악할 수 있습니다.
-분석. 당사는 Google 애널리틱스 및 기타 서비스 제공업체를 통해 당사 서비스에 대한 분석 정보를 수집하고 처리합니다. Google의 데이터 사용 방식에 대한 자세한 내용은 www.google.com/policies/privacy/partners/를 참조하세요. 웹사이트 사용으로 생성된 데이터에 대한 Google 애널리틱스 수집 및 처리를 거부하려면 http://tools.google.com/dlpage/gaoptout 을 방문하세요.
-
-다른 출처의 정보
-Chative Jobs 고객. 귀하가 특정 조직(예: 귀하의 고용주)을 대신하여 또는 해당 조직과 협력하여 당사 서비스를 사용하는 경우, 해당 조직은 당사가 귀하의 계정을 프로비저닝할 수 있도록 귀하에 대한 정보를 당사에 제공할 수 있습니다.
-
-제3자 서비스 및 기관. 당사는 제3자 서비스 및 기관을 포함한 다른 출처에서 귀하에 대한 정보를 수집할 수 있습니다. 예를 들어, 귀하가 제3자 서비스를 통해 당사 서비스에 접속하는 경우, 당사는 귀하가 개인정보 보호 설정을 통해 제공한 해당 제3자 서비스로부터 귀하에 대한 정보를 수집할 수 있습니다.
-
-4. 귀하의 정보 사용 방법 및 처리에 대한 법적 근거
-이 섹션에서는 당사가 귀하의 개인 정보를 사용하는 모든 방법과 그렇게 하는 데 따른 법적 근거에 대해 설명합니다.
-
-특정 상황에서 당사는 귀하가 당사 사업 운영의 일환으로 합리적으로 기대할 수 있고 귀하의 권리와 자유에 중대한 영향을 미치지 않는 방식으로 당사의 정당한 이익을 추구하기 위해 귀하의 데이터를 요구할 수 있습니다. 당사의 정당한 이익은 다음과 같습니다.
-
-귀하의 동의에 따라 귀하의 정보를 처리하는 경우, 귀하는 언제든지 동의를 철회할 권리가 있으며, 철회 전 동의에 따른 처리의 적법성에는 영향을 미치지 않습니다. 귀하의 권리를 행사하려면 본 개인정보 보호정책의 '문의하기' 섹션을 참조하십시오.
-
-당사는 귀하의 개인 정보를 다양한 사업 목적으로 사용합니다. 여기에는 아래 명시된 목적이 포함됩니다. 각 섹션은 데이터 사용 방식, 해당 목적으로 사용할 수 있는 귀하의 데이터, 그리고 데이터 사용의 법적 근거에 대한 설명으로 시작합니다.
-
-1. 다음과 같은 서비스 또는 요청된 정보의 제공 및 관리 :
-
-계정 생성;
-귀하의 정보 및 계정 관리
-질문, 의견 및 기타 요청에 응답합니다.
-친구, 동료 및 다른 사용자와 콘텐츠를 공유하는 것을 포함하여 당사 서비스의 특정 영역, 기능 및 특징에 대한 액세스를 제공하고, 계정에서 이 옵션을 사용 중인 경우 특정 AI 기반 기능을 제공합니다.
-고객 또는 기술 지원 요청에 응답합니다.
-개인에 관해 처리되는 개인정보와 관련된 요청에 응답합니다.
-여기에는 후보자 정보를 제외한 모든 범주의 정보 처리가 포함됩니다.
-
-법적 근거: 귀하와의 계약 이행. 당사에 대한 채무 회수라는 당사의 정당한 이익을 위해 필요. 귀하에게 답변하고 소통하는 당사의 정당한 이익을 위해 필요(계약 관계 또는 법적 의무가 없는 경우). 법적 의무(예: 국가 데이터 보호 및 소비자 보호법, 개인에 대해 처리되는 개인 정보와 관련된 요청에 응답하는 것)를 준수하기 위해 필요
-
-2. 귀하의 계정, 당사 서비스 활동, 개인정보 보호정책 또는 서비스 약관 변경 사항에 관해 귀하와 소통합니다.
-
-여기에는 다음이 포함됩니다: 계정 정보, 커뮤니케이션 정보, 고객 콘텐츠, 학생 계정 정보, 경품 행사, 콘테스트, 설문 조사 및 이벤트 정보, 고객 서비스 정보 처리.
-
-법적 근거: 귀하와의 계약 이행. 법적 의무(국가 데이터 보호 및 소비자 보호법 포함) 준수를 위해 필요합니다.
-
-3. 당사의 사업 및 서비스 관리 및 보호 (문제 해결, 데이터 분석, 테스트, 시스템 유지 관리, 지원, 보고, 내부 품질 관리 및 데이터 안전 및 호스팅 포함).
-
-여기에는 계정 정보, 커뮤니케이션 정보, 기술 정보, 고객 콘텐츠, 사용 데이터, 학생 계정 정보 및 고객 서비스 정보 처리가 포함됩니다.
-
-법적 근거: 귀하와의 계약 이행. 당사의 정당한 이익(사업 운영, 행정 및 IT 서비스 제공, 네트워크 보안, 사기 방지, 사업 재편 또는 그룹 구조조정 등)을 위해 필요. 법적 의무(국가 데이터 보호 및 정보 보안법 포함) 준수를 위해 필요.
-
-4. 인공지능을 통한 서비스 개선.
-
-여기에는 사용 데이터 처리가 포함되며, 경우 고객 콘텐츠 처리도 포함됩니다. 당사는 AI 모델 교육에 사용하는 데이터의 개인 정보를 보호하기 위해 익명화 및 집계 조치를 취하고 있습니다.
-
-법적 근거: 당사의 합법적 이익을 위해 필요합니다(당사의 서비스를 최신 상태로 유지하고 관련성을 유지하기 위함).
-
-5. 경품 추첨, 경연 대회 참여 또는 설문 조사 완료를 가능하게 합니다.
-
-여기에는 경품 추첨, 콘테스트, 설문 조사 및 이벤트 정보와 커뮤니케이션 정보 처리가 포함됩니다.
-
-법적 근거: 귀하와의 계약 이행. 당사의 정당한 이익(고객의 당사 제품/서비스 사용 방식 연구, 제품/서비스 개발 및 사업 성장)을 위해 필요합니다.
-
-6. 사용자 조사를 위한 설문 조사를 실시하고 피드백을 분석합니다.
-
-여기에는 설문 조사 및 이벤트 정보, 계정 정보, 학생 계정 정보, 커뮤니케이션 정보, 서비스 사용 정보 처리가 포함됩니다.
-
-법적 근거: 당사의 합법적 이익을 위해 필요합니다(고객이 당사의 제품/서비스를 어떻게 사용하는지 연구하고, 이를 개발하여 사업을 성장시키기 위함).
-
-7. 귀하가 관심을 가질 만한 상품이나 서비스에 대한 제안과 추천을 해주세요.
-
-여기에는 계정 정보, 커뮤니케이션 정보, 사용 데이터 처리가 포함됩니다.
-
-법적 근거: 당사의 합법적 이익(제품/서비스를 개발하고 사업을 성장시키는 것)을 위해 필요합니다(마케팅 법률에 따라 동의가 필요하지 않은 경우 - 이 경우에는 동의에 의거함).
-
-8. 귀하에게 흥미로울 수 있는 제품, 서비스, 개발 및 이벤트에 관해 기존 고객 및 잠재 고객에게 연락합니다.
-
-여기에는 계정 정보 및 커뮤니케이션 정보 처리가 포함됩니다.
-
-법적 근거: 특정 상황에서는 개인에게 마케팅 자료를 보내기 전에 동의를 구하며, 이런 경우 동의는 귀하에게 마케팅 자료를 보내는 합법적 근거입니다.
-
-동의를 얻지 않은 경우, 당사는 합법적인 이익(제품/서비스를 개발하고 사업을 성장시키는 것)을 합법적인 근거로 삼아 마케팅 자료를 귀하에게 보냅니다.
-
-당사의 마케팅 관행에 대해 궁금한 사항이 있거나 마케팅 목적으로 개인 정보를 사용하는 데 대한 동의를 철회하거나 거부하고 싶으시면 본 개인정보 보호정책의 문의하기 섹션에 명시된 대로 당사에 문의하실 수 있습니다.
-
-9. 귀하에게 관련성 있는 콘텐츠와 광고를 제공하고, 귀하에게 제공하는 광고의 효과를 측정하거나 파악합니다.
-
-여기에는 계정 정보, 커뮤니케이션 정보, 사용 데이터 처리가 포함됩니다.
-
-법적 근거: 당사의 정당한 이익(고객의 당사 제품/서비스 이용 방식 연구, 제품/서비스 개발, 사업 성장 및 마케팅 전략 수립)을 위해 필요합니다. 마케팅 관련 법률에 따라 필요한 경우, 당사는 개인에게 광고를 게재하기 전에 동의를 구하며, 이 경우 동의는 귀하에게 마케팅 정보를 전송하는 당사의 합법적 근거입니다. 마케팅 커뮤니케이션 수신 거부 방법은 섹션 8을 참조하십시오.
-
-10. 귀하가 활성화한 장치 기반 설정을 통해 정보를 수집합니다.
-
-여기에는 다음이 포함됩니다. 서비스 사용과 관련된 고객 콘텐츠 처리, 버그 보고와 관련하여 공유하기로 선택한 모든 미디어.
-
-법적 근거: 동의.
-
-11. 계약 이행 및 법 집행 기관, 법원 및 기타 당국에 정보를 공개하는 것을 포함한 법적 의무 준수.
-
-여기에는 귀하에 관해 처리하는 모든 개인정보가 포함될 수 있습니다.
-
-법적 근거: 법적 의무(국가 데이터 보호, 사이버 보안, 수출 통제, 제재 및 감시법 포함) 준수를 위해 필요합니다. 당사의 정당한 이익을 위해 필요합니다(계약 이행, 전문가 자문 구함, 법적 청구의 제기, 행사 또는 방어).
-
-12. 채용 및 고용, 고용 후보자 고려 포함.
-
-여기에는 후보자 정보 및 커뮤니케이션 정보 처리가 포함됩니다.
-
-법적 근거: 당사의 정당한 이익(후보자 심사 및 직무 적합성 검토)을 위해 필요. 귀하와의 계약 체결.
-
-13. 데이터를 익명화하고, 집계된 통계나 분석 목적 등 집계된 정보를 생성합니다.
-
-귀하가 제공하신 모든 개인 정보를 익명화하고 집계된 정보로 생성할 수 있습니다. 예를 들어, 합법적인 이메일 제공업체와 스팸 제공업체를 구분하기 위해 사용자가 사용하는 이메일 주소 정보를 집계하거나, 특정 기능을 
-제3자 플랫폼 및 서비스. 귀하가 명시적으로 동의하거나 요청한 경우, 당사는 특정 개인 정보를 제3자 플랫폼 및/또는 서비스에 공개할 수 있습니다. 당사는 이러한 제3자 서비스의 관행이나 행위를 지지, 검토 또는 승인하지 않으며, 그에 대해 책임을 지지 않습니다.
-
-광고 파트너. 당사는 서비스를 통해 제3자 광고 파트너가 귀하의 활동 및 기기 관련 정보(예: IP 주소, 쿠키 식별자, 방문 페이지, 위치, 시간)를 수집하기 위한 기술 및 기타 추적 도구를 설정할 수 있도록 허용합니다. 이러한 광고 파트너는 귀하가 네트워크 내 제3자 서비스를 방문할 때 타겟팅 광고를 제공하기 위해 이 정보(및 다른 웹사이트에서 수집된 유사 정보)를 사용합니다. 이러한 관행은 일반적으로 "관심 기반 광고" 또는 "개인 맞춤 광고"라고 합니다. 제3자 광고 파트너에게 개인 정보를 공개하지 않으려면 아래 "선택 사항" 항목 아래의 지침을 따르세요.
-
-당사 또는 타인을 보호하기 위한 공개. 당사는 다음과 같은 경우 필요하거나 적절하다고 판단되는 경우 귀하와 관련된 정보에 접근하고 이를 보존하며 유능한 법 집행 기관, 규제 및 정부 기관, 법원 또는 기타 제3자에게 공개합니다. (i) 법원 명령이나 소환장과 같은 법 집행 또는 국가 안보 요청 및 법적 절차를 준수합니다. (ii) 귀하, 당사 또는 타인의 권리, 재산 또는 안전을 보호합니다. (iii) Chative Jobs의 정책 및 계약을 시행합니다. (iv) 당사에 빚진 금액을 징수합니다. (v) 재정적 손실을 방지하거나 의심되거나 실제 불법 활동에 대한 조사 또는 기소와 관련하여 공개가 필요하거나 바람직하다고 당사가 선의로 판단하는 경우.
-
-합병, 매각 또는 기타 자산 양도 시 정보 공개. 당사가 합병, 인수, 재무 실사, 구조 조정, 파산, 법정관리, 자산 매수 또는 매각, 또는 다른 공급업체로의 서비스 이전 등에 관여하는 경우, 법률 및/또는 계약에 따라 허용되는 범위 내에서, 해당 거래의 일환으로 당사의 사업 운영에 대한 정당한 이익에 따라 귀하의 정보가 매각 또는 이전될 수 있습니다.
-
-6. 국제 데이터 전송
-당사가 처리하는 개인 정보는 귀하가 거주하는 지역의 법률과 다른 데이터 보호법이 적용될 수 있는 관할권으로 전송, 처리 및 저장될 수 있으며(경우에 따라 보호 수준이 다를 수 있음), 관련 법률에 따라 해당 관할권의 정부, 법원 또는 법 집행 기관의 접근 요청이 있을 수 있습니다. 당사는 관련 법률의 요건에 따라 귀하의 개인 정보를 보호하기 위해 최선을 다합니다.
-
-구체적으로, 당사가 처리하는 모든 개인 정보는 본사와 주요 서버가 위치한 한국으로 전송, 처리 및 저장됩니다. 즉, 당사는 귀하의 개인 정보를 수집할 때 이러한 국가 중 하나에서 처리합니다.
-
-Chative Jobs 고객 DPA에 구현된 표준 계약 조항은 여기에서 확인하실 수 있습니다. 당사는 또한 제3자 서비스 제공업체 및 파트너와의 계약에도 표준 계약 조항을 적용하고 있습니다. 국제 데이터 전송과 관련하여 문의 사항이 있으시면 아래 정보를 사용하여 문의해 주시기 바랍니다.
-
-8. 귀하의 선택
-일반. 귀하는 귀하의 개인정보의 특정 사용을 거부할 권리가 있습니다.
-
-이메일. 원치 않는 마케팅 이메일을 받으신 경우, 이메일 하단에 있는 수신 거부 링크를 클릭하여 향후 마케팅 이메일 수신을 거부하실 수 있습니다. 단, 요청하신 제품 또는 서비스와 관련된 거래 관련 이메일은 계속 수신됩니다. 또한, 당사 및 당사 서비스에 대한 특정 비홍보성 이메일을 보내드릴 수 있으며, 이러한 이메일 수신은 거부하실 수 없습니다(예: 서비스 관련 이메일, 서비스 약관 또는 본 개인정보 보호정책 업데이트).
-
-모바일 기기. 당사는 모바일 애플리케이션을 통해 푸시 알림을 보낼 수 있습니다. 귀하는 언제든지 모바일 기기의 설정을 변경하여 이러한 유형의 알림 수신을 거부할 수 있습니다.
-
-AI. AI 기능과 콘텐츠 교육을 관리하는 방법에 대해 자세히 알아 보세요.
-
-쿠키 및 관심 기반 광고. 귀하는 쿠키를 수락할지 또는 거부할지 결정할 권리가 있습니다. 유럽 연합에 거주하는 경우, 웹사이트 하단의 "쿠키 관리"를 클릭하여 언제든지 이용할 수 있는 쿠키 동의 도구를 통해 쿠키 설정을 변경할 수 있습니다(단, 하단의 "쿠키 관리"를 이용하려면 Chative Jobs 계정에서 로그아웃해야 할 수 있습니다). 또한 브라우저 또는 기기에서 허용하는 대로 설정을 조정하여 기기에서 기술 설치를 중지 또는 제한하거나 제거할 수도 있습니다. 
-
-온라인 광고 업계는 데이터 파트너 및 자체 규제 프로그램에 참여하는 기타 광고 파트너의 타겟팅 광고 수신을 거부할 수 있는 웹사이트도 제공합니다. 
-
-각 브라우저와 각 기기에서 별도로 옵트아웃해야 합니다.
-
-"추적 금지" 및 "전역 개인정보 보호 동의". 추적 금지("DNT") 및 전역 개인정보 보호 동의("GPC") 신호는 사용자가 특정 웹 브라우저에서 설정할 수 있는 개인정보 보호 환경 설정입니다. 당사는 DNT 신호에 응답하지 않지만, 특정 웹 브라우저에서 GPC 신호를 인식하고 처리합니다. 당사가 GPC 신호를 식별 가능한 소비자와 합리적으로 연관시킬 수 있는 경우, 해당 소비자의 개인정보 "판매" 또는 "공유"/타겟팅 광고 처리(캘리포니아 소비자 개인정보 보호법에서 정의한 용어)를 거부하는 요청으로 간주합니다.
-
-9. 귀하의 개인정보 보호 권리
-해당 법률에 따라 귀하는 다음과 같은 권리를 가질 수 있습니다.
-
-당사가 귀하의 개인정보를 처리하고 있는지 확인하세요.
-귀하에 대한 개인 정보에 대한 접근 및 이전성을 요청합니다. 여기에는 다음이 포함됩니다. (i) 귀하의 개인 정보에 대한 접근 또는 사본 획득; (ii) 귀하가 당사에 제공한 개인 정보의 전자 사본 수신 또는 해당 정보를 다른 회사로 보내도록 요청(이하 "데이터 이전성 권리").
-개인 정보가 부정확하거나 불완전한 경우 수정을 요청하세요. 경우에 따라 개인 정보를 업데이트할 수 있는 셀프 서비스 도구를 제공할 수 있습니다.
-개인 정보 삭제 요청(계정 삭제 요청 포함). 제한된 상황에서는 삭제 요청이 있더라도 법적 요건을 준수하기 위해 개인 정보를 보관해야 할 수 있습니다.
-당사의 개인정보 처리에 대한 제한을 요청하거나 이에 반대합니다.
-당사의 개인 정보 처리에 대한 동의를 철회합니다.
-마케팅 커뮤니케이션 수신 거부. 자세한 내용은 위 8번 항목을 참조하세요.
-이러한 권리를 행사하려면 아래에 명시된 대로 당사에 연락해 주십시오. 당사의 요청 처리 방식에 만족하지 못하시는 경우, 관련 법률에 따라 당사의 결정에 대해 항소할 권리가 있습니다. 관련 법률에 따라 항소 권리가 있는 경우, 당사는 해당 권리와 항소 제기 방법을 안내해 드립니다.
-
-당사는 관련 법률에 따라 이러한 요청을 처리합니다. 귀하의 개인정보 보호를 위해, 당사는 귀하의 요청을 이행하기 전에 귀하의 신원을 확인하는 절차를 밟습니다. 귀하 또는 귀하를 대신하여 법적으로 권한을 부여받은 사람만이 귀하의 개인정보와 관련된 검증 가능한 소비자 요청을 할 수 있습니다. 미성년 자녀를 대신하여 검증 가능한 소비자 요청을 할 수도 있습니다. 공인 대리인을 지정하려면 아래에 명시된 방법으로 당사에 연락해 주십시오.
-
-귀하가 조직(예: 귀하의 고용주)을 대신하여 당사 서비스를 사용하는 경우, 해당 조직이 위에 언급된 개별 권리 요청을 이행할 책임이 있을 수 있습니다.
-
-10. 데이터 보존
-당사는 본 개인정보 처리방침에 명시된 바에 따라 수집된 개인정보를 귀하가 당사 서비스를 이용하는 동안 또는 수집 목적 달성, 당사 서비스 제공, 분쟁 해결, 법적 방어, 감사 수행, 정당한 사업 목적 추구, 계약 이행 및/또는 관련 법률 준수를 위해 필요한 기간 동안 보관합니다. 구체적인 보관 기간은 정보의 특성, 수집 및 처리 목적, 그리고 법적 요건의 성격에 따라 달라집니다.
-
-당사가 귀하의 개인 정보를 처리할 정당한 사업적 필요성이나 법적 근거가 지속되지 않을 경우, 당사는 귀하의 개인 정보를 삭제하거나 익명화합니다. 만약 이것이 불가능한 경우(예: 귀하의 개인 정보가 백업 아카이브에 저장된 경우), 당사는 귀하의 개인 정보를 안전하게 보관하고 삭제가 가능할 때까지 추가 처리로부터 격리합니다. 귀하는 위 "개인정보 보호 권리"에 명시된 바와 같이 언제든지 개인 정보 삭제를 요청할 수 있지만, 당사는 귀하의 계정을 유지하기 위해 귀하의 개인 정보가 필요하므로, 삭제를 요청하려면 계정을 삭제해야 합니다.
-
-11. 귀하의 정보 보안
-당사는 귀하의 정보가 본 개인정보 보호정책에 따라 안전하게 처리되도록 조치를 취하고 있습니다. 당사의 보안 관행에 대한 자세한 내용은 여기 에서 확인하실 수 있습니다 .
-
-당사는 귀하의 서비스 이용과 관련된 보안, 개인정보 보호 및 관리 문제에 대해 전자적으로 귀하와 소통할 수 있습니다. 보안 시스템 침해 사실을 알게 되는 경우, 당사는 서비스 게시, 우편 또는 귀하에게 이메일 발송을 통해 전자적으로 귀하에게 알리려고 시도할 수 있습니다.
-
-12. 제3자 웹사이트/애플리케이션
-본 서비스에는 다른 웹사이트/애플리케이션으로 연결되는 링크가 포함될 수 있으며, 다른 웹사이트/애플리케이션은 당사 서비스를 참조하거나 링크할 수 있습니다. 이러한 제3자 서비스는 당사가 관리하지 않습니다. 당사는 사용자 여러분께서 상호 작용하는 각 웹사이트 및 애플리케이션의 개인정보 보호정책을 읽어보실 것을 권장합니다. 당사는 이러한 다른 웹사이트 또는 애플리케이션의 개인정보 보호 관행이나 콘텐츠를 보증, 검토 또는 승인하지 않으며, 이에 대해 책임을 지지 않습니다. 이러한 다른 웹사이트 또는 애플리케이션 방문은 사용자 본인의 책임입니다.
-
-13. 감독 기관
-귀하가 유럽 경제 지역이나 영국에 거주하는 경우, 당사의 개인정보 처리가 해당 법률을 위반한다고 생각될 경우 감독 기관에 불만을 제기할 권리가 있습니다.
-
-14. 개인정보 보호정책 변경
-당사는 단독 재량으로 본 개인정보 보호정책을 수시로 개정할 수 있습니다. 본 개인정보 보호정책에 중대한 변경 사항이 있는 경우, 관련 법률에 따라 귀하에게 통지해 드립니다.
-
-15. 문의하기
-본 개인정보 보호정책 또는 당사의 개인정보 보호 관행에 대해 궁금한 사항이 있거나, 본 개인정보 보호정책에 명시된 귀하의 권리를 행사하기 위한 요청을 제출하려는 경우 다음 주소로 문의해 주시기 바랍니다.</p><p>수집 항목, 이용 목적, 보관 기간, 제3자 제공, 파기 절차 등을 포함합니다.</p></div>`); }); })();
-
-    // Initial load: conversations then latest if exists
+    // --- 설정 관련 로직 끝 ---
+    
+    // [신규] 2단계 탈퇴 로직
+    openConfirmModalBtn.addEventListener('click', () => { close(settingsModal); open(confirmModal); });
+    closeConfirmModalBtn.addEventListener('click', () => close(confirmModal));
+    deleteRequestBtn.addEventListener('click', async ()=>{ if(confirm('탈퇴하시겠습니까? 30일간 복구 가능합니다.')){ const r=await fetch('/uauth/api/delete_request/',{method:'POST', headers:{'X-CSRFToken':csrftoken}}); const j=await r.json(); if(j.ok){ alert('탈퇴 대기 상태로 전환되었습니다.'); window.location.href='/llm/'; } }});
+    
+    // [유지] 비밀번호 변경 로직
+    openPwdChange.addEventListener('click', (e)=>{ e.preventDefault(); close(settingsModal); open(pwdChangeModal); });
+    closePwdChange.addEventListener('click', ()=> { close(pwdChangeModal); open(settingsModal); }); // [수정] 닫을 때 설정창 다시 열기
+    pwdChangeBtn.addEventListener('click', async ()=>{ const cur=document.getElementById('pwd-current').value.trim(); const p1=document.getElementById('pwd-new1').value.trim(); const p2=document.getElementById('pwd-new2').value.trim(); const fd=new FormData(); fd.append('current_password',cur); fd.append('password1',p1); fd.append('password2',p2); const r=await fetch('/uauth/api/password/change/',{method:'POST', body:fd, headers:{'X-CSRFToken':csrftoken}}); const j=await r.json(); if(j.ok){ alert('비밀번호가 변경되었습니다.'); close(pwdChangeModal);} else { alert(j.message||'변경 실패'); }});
+
+    // [유지] 정책 모달 (chat.html의 기능)
+    (function(){ 
+      const modal=document.getElementById('policy-modal'); 
+      const title=document.getElementById('policy-title'); 
+      const body=document.getElementById('policy-body'); 
+      const openPol=(t,html)=>{ title.textContent=t; body.innerHTML=html; modal.classList.remove('hidden'); }; 
+      document.getElementById('close-policy').addEventListener('click', ()=> modal.classList.add('hidden')); 
+      
+      const fetchPolicy = async (e, type) => {
+          e.preventDefault(); 
+          const url = (type === 'terms') ? '/llm/policy/terms' : '/llm/policy/privacy';
+          const titleText = (type === 'terms') ? '서비스 이용약관' : '개인정보 보호정책';
+          try {
+              const r = await fetch(url); 
+              const j = await r.json(); 
+              openPol(titleText, j.html||'');
+          } catch(_) {
+              openPol(titleText, '<div class=\"text-red-600\">불러오기 실패</div>');
+          }
+      };
+      
+      document.getElementById('open-terms').addEventListener('click',(e) => fetchPolicy(e, 'terms')); 
+      document.getElementById('open-privacy').addEventListener('click',(e) => fetchPolicy(e, 'privacy')); 
+    })();
+
+    // Initial load
     (async()=>{ await loadConversations(); const first=convList.querySelector('a[data-id]'); if(first){ await loadConversation(first.getAttribute('data-id')); } })();
 
     // ESC로 모달 닫기
-    window.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ [document.getElementById('policy-modal'), document.getElementById('pdf-guide-modal'), document.getElementById('settings-modal'), document.getElementById('pwd-change-modal')].forEach(m=>{ if(m && !m.classList.contains('hidden')) m.classList.add('hidden'); }); } });
+    window.addEventListener('keydown', (e)=>{ if(e.key==='Escape'){ 
+        [policyModal, pdfGuide, settingsModal, pwdChangeModal, confirmModal].forEach(m=>{ 
+            if(m && !m.classList.contains('hidden')) m.classList.add('hidden'); 
+        }); 
+    } });
   </script>
 </body>
 </html>
-<script>
-// 정책 링크를 캡처 단계에서 가로채 docs 내용을 로드
-(function(){
-  const modal=document.getElementById('policy-modal');
-  const title=document.getElementById('policy-title');
-  const body=document.getElementById('policy-body');
-  const openPol=(t,html)=>{ title.textContent=t; body.innerHTML=html; modal.classList.remove('hidden'); };
-  function bind(id, url, t){
-    const el=document.getElementById(id); if(!el) return;
-    el.addEventListener('click', async (e)=>{ e.preventDefault(); e.stopImmediatePropagation(); try{ const r=await fetch(url); const j=await r.json(); openPol(t, j.html||''); }catch(_){ openPol(t, '<div class=\"text-red-600\">불러오기 실패</div>'); } }, true);
-  }
-  bind('open-terms','/llm/policy/terms','서비스 이용약관');
-  bind('open-privacy','/llm/policy/privacy','개인정보 보호정책');
-})();
-</script>
-
-    // Sidebar toggle
-    document.getElementById('toggle-sidebar-btn').addEventListener('click', ()=>{
-      const sb=document.getElementById('left-sidebar');
-      if(sb.style.display==='none'){ sb.style.display='flex'; } else { sb.style.display='none'; }
-    });
